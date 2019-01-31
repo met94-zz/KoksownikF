@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="generalPreferences">GENERAL</string>
+    <string name="appearancePreferences">APPEARANCE</string>
+    <string name="generalPreferences_themeKey">THEME_KEY</string>
+    <string name="generalPreferences_themeLight">Light theme</string>
+    <string name="generalPreferences_themeDark">Dark theme</string>
+    <string name="generalPreferences_themeRefresh">Apply</string>
+    <string name="generalPreferences_themeRefreshKey">REFRESH_THEME_KEY</string>
+    <string name="generalPreferences_backupKey">BACKUP_KEY</string>
+    <string name="generalPreferences_importBackupKey">IMPORT_BACKUP_KEY</string>
+    <string name="generalPreferences_createLogsKey">IMPORT_BACKUP_KEY</string>
+    <string name="generalPreferences_useExternalStorageKey">EXTERNAL_STORAGE_KEY</string>
+    <string name="generalPreferences_securityKeyKey">SECURITY_KOKSOWNIK_KEY_KEY</string>
+</resources>

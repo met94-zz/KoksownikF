@@ -1,0 +1,40 @@
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="@string/generalPreferences">
+        <zls.mutek.koksownikf.ButtonPreference android:layout="@layout/preferences_backup_button"
+            android:key="@string/generalPreferences_backupKey" />
+        <zls.mutek.koksownikf.ButtonPreference android:layout="@layout/preferences_import_button"
+            android:key="@string/generalPreferences_importBackupKey" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/generalPreferences_createLogsKey"
+            android:summary="@string/save_logs_summary"
+            android:title="@string/save_logs" />
+<!--
+        <EditTextPreference
+            android:defaultValue="@string/generalPreferences_msgheaderDef"
+            android:key="@string/generalPreferences_msgheaderKey"
+            android:singleLine="true"
+            android:summary="@string/generalPreferences_msgheaderSummary"
+            android:title="@string/generalPreferences_msgheader" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="@string/generalPreferences_defaultappKey"
+            android:summary="@string/generalPreferences_defaultappSummary"
+            android:title="@string/generalPreferences_defaultapp" />
+-->
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/appearancePreferences">
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/generalPreferences_themeKey"
+            android:title="@string/generalPreferences_themeDark" />
+        <zls.mutek.koksownikf.ButtonPreference android:layout="@layout/preferences_refresh_button"
+            android:key="@string/generalPreferences_themeRefreshKey" />
+    </PreferenceCategory>
+</PreferenceScreen>
