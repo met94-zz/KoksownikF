@@ -75,6 +75,62 @@ object Utils {
                 || c.toInt() in 0x0300..0x036F || c.toInt() in 0x203F..0x2040)
     }
 
+    /**
+     * Check to see if a string is a valid Name according to [5]
+     * in the XML 1.0 Recommendation
+     *
+     * @param name string to check
+     * @return true if name is a valid Name
+     */
+    fun isValidXMLName(name: String): Boolean {
+        if (name.length == 0)
+            return false
+        var ch = name[0]
+        if (!isNameStartChar(ch) || ch == ':' || ch == ';')
+            return false
+        for (i in 1 until name.length) {
+            ch = name[i]
+            if (!isNameChar(ch) || ch == ':' || ch == ';' || ch == ' ') {
+                return false
+            }
+        }
+        return true
+    }
+
+    fun fixXMLName(name: String): String {
+        val sb = StringBuilder()
+        var ch: Char
+        for (i in 0 until name.length) {
+            ch = name[i]
+            if (!isNameChar(ch) || ch == ':' || ch == ';' || ch == ' ') {
+                sb.append("_")
+            } else
+                sb.append(ch)
+        }
+        return sb.toString()
+    }
+
+    fun validXMLName(fragment: DetailsFragment, name: String): String {
+        var result = name
+        val ch = result[0]
+        Character.UPPERCASE_LETTER
+        if(Character.getType(ch) != Character.UPPERCASE_LETTER.toInt() && Character.getType(ch) != Character.LOWERCASE_LETTER.toInt()) { //first char must be a letter
+            result = "L$result"
+        }
+        if(!isValidXMLName(result)) { //any invalid characters?
+            result = fixXMLName(result); //fix invalid characters
+        }
+        while(fragment.adapterItems.any { it["title"] == result }) { //check for duplicates
+            if(result[result.length-1] == '9' || !Character.isDigit(result[result.length-1])) {
+                result += '1'
+            } else {
+                var c = result[result.length-1]
+                result = result.substring(0, result.length-1) + (++c)
+            }
+        }
+        return result
+    }
+
     fun showAlertDialog(context: Context, @StringRes title: Int, @StringRes message: Int) {
         showAlertDialog(context, context.getString(title), context.getString(message))
     }

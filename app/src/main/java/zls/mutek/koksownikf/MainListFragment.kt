@@ -56,6 +56,8 @@ class MainListFragment : ListFragment() {
     internal var dirs = ArrayList<String>()
     private var layoutView: View? = null
 
+    internal var notes = ArrayList<HashMap<String, *>>()
+
     private val TAG = "MF_TAG"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,6 +148,9 @@ class MainListFragment : ListFragment() {
                             if(!dirs.contains(newPath)) {
                                 dirs.add(newPath!!)
                                 adapterItems.add(newPath!!)
+                                var map = HashMap<String, Any>()
+                                map[path!!] = newPath
+                                (activity as MainActivity).updateMap["newdirs"] = map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
                             }
                             //newPath.orEmpty()
                         }
@@ -189,7 +194,10 @@ class MainListFragment : ListFragment() {
     override fun onAttach(context: Context?) {
         super.onAttach(context)
 
-        listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)
+        if (listAdapter == null && this.dirs.size != 0) {
+            listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)
+        }
+
     }
 
     fun initializeAdapterList(dirs: ArrayList<String>)
@@ -224,7 +232,7 @@ class MainListFragment : ListFragment() {
                     if((splitted[level] == curPath || curPath.isNullOrEmpty()) && //first should valid if that curpath matches so we wont get bound of array below
                         !helpArray.contains(splitted[checkIndex])
                     ) {
-                        if(!splitted[checkIndex].isNullOrEmpty()) {
+                        if(!splitted[checkIndex].isEmpty()) {
                             adapterItems.add(dir)
                             helpArray.add(splitted[checkIndex])
                         }
@@ -232,7 +240,10 @@ class MainListFragment : ListFragment() {
                 }
             }
         //}
-        (listAdapter as MainListAdapter?)?.notifyDataSetChanged()
+        if (listAdapter == null && context != null) {
+            listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)
+        }
+        else (listAdapter as MainListAdapter?)?.notifyDataSetChanged()
     }
 
     override fun onListItemClick(l: ListView?, v: View?, position: Int, id: Long) {
@@ -262,15 +273,19 @@ class MainListFragment : ListFragment() {
         args.putString("curPath", nextPath)
         */
         val splitted = path?.split('/')
+        var index = -1
         for(i in splitted!!.indices) {
             if(splitted[i] == curPath) {
                 nextPath = splitted[i+1]
+                index = i
                 break
             }
         }
-        if(nextPath == "*") {
+        if(index != -1 && (index+2) < splitted.size && splitted[index+2] == "*") {
             fr = DetailsFragment()
             fr.arguments = args
+            if(notes.size != 0)
+                fr.notes = notes
         } else {
             fr = MainListFragment()
             fr.arguments = args
@@ -278,6 +293,10 @@ class MainListFragment : ListFragment() {
             fr.initializeAdapterList(dirs)
         }
 
+        fragmentManager!!.addOnBackStackChangedListener{
+            if(fr is DetailsFragment)
+                this.notes = fr.notes
+        }
         fragmentManager!!.beginTransaction().replace(R.id.fragment_container, fr).addToBackStack(null).commit()
     }
 }

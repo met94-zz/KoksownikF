@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     /*****
      * getters and setters section
      */
+    var updateMap: HashMap<String, Any> = HashMap<String, Any>()
     var dirs: ArrayList<String> = arrayListOf()
     var playButtonPressed = false
     var stopButtonPressed = true
@@ -272,6 +273,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             R.id.actionbar_save -> {
                 if (saveLogs) {
                     Utils.saveLogcatToFile(this)
+                }
                 return true
             }
             R.id.action_settings -> {
@@ -280,6 +282,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    fun performSave() {
+        if(updateMap.size == 0) return
+        while(updateMap.size != 0) {
+            if(updateMap.containsKey("newdirs")) {
+                val newDirsMap = updateMap["newdirs"] as HashMap<String, Any>
+                for((key, value) in newDirsMap) {
+                    
+                }
+            }
         }
     }
 

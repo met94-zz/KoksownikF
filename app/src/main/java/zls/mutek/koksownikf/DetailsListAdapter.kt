@@ -107,10 +107,20 @@ class DetailsListAdapter(
         val id = v.id
         when (id) {
             R.id.details_list_EditText1 -> if (!hasFocus) {
-                val map = v.tag as HashMap<String, String>
-                if (map != null && map.containsKey("path")) {
+                val map = v.tag as? HashMap<String, String>
+                if (map != null && map.containsKey("path") && map.containsKey("date")) {
                     val path = map["path"]
-                    if (!path!!.isEmpty()) {
+                    if (!path!!.isEmpty() && !map["date"]!!.isEmpty()) {
+                        val newData = (v as EditText).text.toString()
+                        val updateMap = HashMap<String, String>()
+                        updateMap["data"] = newData
+                        updateMap["date"] = map["date"]!!
+                        //(fragment.activity as MainActivity).updateMap[path!!] = updateMap
+
+                        val detailsMap = HashMap<String, Any>()
+                        detailsMap[path!!] = updateMap
+
+                        (fragment.activity as MainActivity).updateMap["updatedetails"] = detailsMap
                         /*
                         val tree = fragment.tree?.getChildTreeByPath(path)
                         val newData = (v as EditText).text.toString()

@@ -59,8 +59,16 @@ import java.util.*
 class DetailsFragment : ListFragment(), View.OnLongClickListener {
     internal var path: String? = null
     internal var id: String? = null
-    internal var adapterItems = ArrayList<HashMap<String, String>>()
-    internal var notes = ArrayList<HashMap<String, *>>()
+    var adapterItems = ArrayList<HashMap<String, String>>()
+        private set(value) {
+            field = value
+        }
+    var notes = ArrayList<HashMap<String, *>>()
+    /*
+        private set(value) {
+            field = value
+        }
+    */
     internal var newFileTimestamp: String = ""
     internal var limitLoad = 0x00000002
 
@@ -138,7 +146,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 lp.height = _height
                 lp.gravity = Gravity.BOTTOM or Gravity.RIGHT
                 moreButton.layoutParams = lp
-                moreButton.setOnClickListener( {
+                moreButton.setOnClickListener{
                         limitLoad += 2 and 0xFFFF
                         val filename = id!! + ".xml"
                         val file = context!!.getFileStreamPath(filename)
@@ -203,7 +211,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                             }
 
                         }
-                    } )
+                    }
                 listContainer.addView(moreButton)
             }
         }
@@ -258,12 +266,22 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         calendar.set(Calendar.MILLISECOND, 0)
                         newFileTimestamp = calendar.timeInMillis.toString()
 
+                        newNode = Utils.validXMLName(this, newNode)
+
                         val date = Date(calendar.timeInMillis)
                         val map = HashMap<String, String>()
                         map["title"] = newNode
                         map["data"] = data
-                        //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
+                        map["date"] = date.toString()
+                        map["path"] = path!!
+                                //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                         adapterItems.add(0, map)
+
+                        val detailsMap = HashMap<String, Any>()
+                        detailsMap[path!!] = map
+
+                        (activity as MainActivity).updateMap["newdetails"] = detailsMap
+
                         if (listAdapter == null) {
                             listAdapter = DetailsListAdapter(
                                 activity!!,
@@ -273,35 +291,6 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                                 this@DetailsFragment
                             )
                         }
-                        /*
-                        val childName = "T$newFileTimestamp"
-                        var child = tree!!.getChild(childName)
-                        if (child == null) {
-                            child = Tree(childName, tree)
-                            tree!!.addChild(child)
-                        }
-
-                        //newNode = XMLUtils.validXMLName(child, newNode)
-
-                        val childChild = Tree(newNode, child)
-                        child.addChild(childChild)
-                        childChild.data = data
-
-                        val map = HashMap<String, String>()
-                        map["title"] = newNode
-                        map["data"] = data
-                        map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
-                        adapterItems.add(0, map)
-                        if (listAdapter == null) {
-                            listAdapter = DetailsListAdapter(
-                                activity!!,
-                                R.layout.details_list_layout,
-                                R.layout.details_list_separator,
-                                adapterItems,
-                                this@DetailsFragment
-                            )
-                        }
-                        */
                         (listAdapter as DetailsListAdapter).notifyDataSetChanged()
                     }
                     dialog?.dismiss()
@@ -330,9 +319,61 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         return true
     }
 
-    private fun initializeAdapterList(notes: ArrayList<HashMap<String, *>>) {
+    private fun downloadData() {
+        if(notes.size != 0)
+        {
+            if(context != null && adapterItems.size != 0) {
+                initializeAdapterList();
+            }
+            return
+        }
+
+        // Access a Cloud Firestore instance from your Activity
+        val db = FirebaseFirestore.getInstance()
+        val docRef = db.collection("users").document("CycxoH93888zgq31fry6")
+        docRef.get()
+            .addOnSuccessListener { document ->
+                if (document != null) {
+                    Log.d(TAG, "DocumentSnapshot data: " + document.data)
+                    val dirsRef = docRef.collection("dirs")
+                    dirsRef.get()
+                        .addOnSuccessListener { result ->
+                            for (docDirRef in result) {
+                                Log.d(TAG, docDirRef.id + " => " + docDirRef.data)
+                                if(docDirRef.data["path"] == path) {
+                                    val notesRef = dirsRef.document(docDirRef.id).collection("notes")
+                                    notesRef.get()
+                                        .addOnSuccessListener { result ->
+                                            for (docNoteRef in result) {
+                                                Log.d(TAG, docNoteRef.id + " => " + docNoteRef.data)
+                                                val noteData = docNoteRef.data as? HashMap<String, String>
+                                                if(noteData != null)
+                                                    notes.add(noteData)
+                                            }
+                                            initializeAdapterList();
+                                        }
+                                        .addOnFailureListener { exception ->
+                                            Log.d(TAG, "Error getting documents: ", exception)
+                                        }
+                                }
+                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.d(TAG, "Error getting documents: ", exception)
+                        }
+                } else {
+                    Log.d(TAG, "No such document")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.d(TAG, "get failed with ", exception)
+            }
+    }
+
+    private fun initializeAdapterList() {
         var map: HashMap<String, String>
         var mapNote: HashMap<String, String>
+
         for(note in notes) {
             map = HashMap()
             map["separator"] = "true"
@@ -347,78 +388,39 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 adapterItems.add(map)
             }
         }
-        (listAdapter as DetailsListAdapter).notifyDataSetChanged()
+        //
+        if(listAdapter == null)
+            listAdapter = DetailsListAdapter(
+                context!!,
+                R.layout.details_list_layout,
+                R.layout.details_list_separator,
+                adapterItems,
+                this
+            )
+        else
+            (listAdapter as DetailsListAdapter).notifyDataSetChanged()
     }
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
 
         if (validTree()) {
-            if(1 == 1)//if (tree!!.hasChildren())
-            {
-                // Access a Cloud Firestore instance from your Activity
-                val db = FirebaseFirestore.getInstance()
-                val docRef = db.collection("users").document("CycxoH93888zgq31fry6")
-                docRef.get()
-                    .addOnSuccessListener { document ->
-                        if (document != null) {
-                            Log.d(TAG, "DocumentSnapshot data: " + document.data)
-                            val dirsRef = docRef.collection("dirs")
-                            dirsRef.get()
-                                .addOnSuccessListener { result ->
-                                    for (docDirRef in result) {
-                                        Log.d(TAG, docDirRef.id + " => " + docDirRef.data)
-                                        if(docDirRef.data["path"] == path) {
-                                            val notesRef = dirsRef.document(docDirRef.id).collection("notes")
-                                            notesRef.get()
-                                                .addOnSuccessListener { result ->
-                                                    for (docNoteRef in result) {
-                                                        Log.d(TAG, docNoteRef.id + " => " + docNoteRef.data)
-                                                        val noteData = docNoteRef.data as? HashMap<String, String>
-                                                        if(noteData != null)
-                                                            notes.add(noteData)
-                                                    }
-                                                    initializeAdapterList(notes)
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.d(TAG, "Error getting documents: ", exception)
-                                                }
-                                        }
-                                    }
-                                }
-                                .addOnFailureListener { exception ->
-                                    Log.d(TAG, "Error getting documents: ", exception)
-                                }
-                        } else {
-                            Log.d(TAG, "No such document")
-                        }
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.d(TAG, "get failed with ", exception)
-                    }
-                /*
-                val children = tree!!.getChildren()
-                Collections.sort(children, Comparator { o1, o2 ->
-                    try {
-                        return@Comparator (java.lang.Long.parseLong(o2.nodeName!!.substring(1)) - java.lang.Long.parseLong(
-                            o1.nodeName!!.substring(
-                                1
-                            )
-                        )).toInt()
-                    } catch (e: Exception) {
-                        return@Comparator 1
-                    }
-                })
+            /*
+            val children = tree!!.getChildren()
+            Collections.sort(children, Comparator { o1, o2 ->
+                try {
+                    return@Comparator (java.lang.Long.parseLong(o2.nodeName!!.substring(1)) - java.lang.Long.parseLong(
+                        o1.nodeName!!.substring(
+                            1
+                        )
+                    )).toInt()
+                } catch (e: Exception) {
+                    return@Comparator 1
+                }
+            })
 
-                */
-                listAdapter = DetailsListAdapter(
-                    context!!,
-                    R.layout.details_list_layout,
-                    R.layout.details_list_separator,
-                    adapterItems,
-                    this
-                )
-            }
+            */
+            downloadData()
         }
     }
 
