@@ -140,6 +140,9 @@ class MainListFragment : ListFragment() {
                 bt.setOnClickListener {
                     var newNode: String? = et.text.toString()
                     if (newNode != null && !newNode.isEmpty()) {// && validTree()) {
+                        if(!Utils.isValidXMLName(newNode)) { //any invalid characters?
+                            newNode = Utils.fixXMLName(newNode) //fix invalid characters
+                        }
                         if (!checkBox.isChecked) {
 
                         } else {
@@ -148,7 +151,9 @@ class MainListFragment : ListFragment() {
                             if(!dirs.contains(newPath)) {
                                 dirs.add(newPath!!)
                                 adapterItems.add(newPath!!)
-                                var map = HashMap<String, Any>()
+                                var map = (activity as MainActivity).updateMap["newdirs"] as? HashMap<String, Any>
+                                if(map == null)
+                                    map = HashMap<String, Any>()
                                 map[path!!] = newPath
                                 (activity as MainActivity).updateMap["newdirs"] = map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
                             }

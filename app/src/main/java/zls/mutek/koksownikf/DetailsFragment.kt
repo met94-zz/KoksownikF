@@ -51,6 +51,8 @@ import java.io.IOException
 import java.io.InputStream
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 /**
  * Created by abara on 7/20/2017.
@@ -277,10 +279,41 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                         adapterItems.add(0, map)
 
-                        val detailsMap = HashMap<String, Any>()
-                        detailsMap[path!!] = map
+                        var updateAllDetailsMap = (activity as MainActivity).updateMap["newdetails"] as? HashMap<String, Any>
+                        if(updateAllDetailsMap == null)
+                            updateAllDetailsMap = HashMap<String, Any>()
 
-                        (activity as MainActivity).updateMap["newdetails"] = detailsMap
+                        /*
+                        var dataList: ArrayList<HashMap<String, String>>
+                        if(updateMap.containsKey(path!!)) {
+                            dataList = updateMap[path!!] as ArrayList<HashMap<String, String>>
+                        } else {
+                            dataList = ArrayList<HashMap<String, String>>()
+                        }
+                        dataList.add(map)
+
+                        updateMap[path!!]  = dataList
+                        */
+
+                        var updateMap: HashMap<String, Any>?
+                        updateMap = updateAllDetailsMap[path!!] as? HashMap<String, Any>
+                        if(updateMap == null)
+                            updateMap = HashMap()
+
+                        if(!updateMap.containsKey("created"))
+                            updateMap["created"] = date//.toString()
+
+                        if(!updateMap.containsKey("data"))
+                            updateMap["data"] = HashMap<String, String>()
+
+                        var updateDataMap = updateMap["data"] as HashMap<String, String>
+                        updateDataMap[newNode] = data
+                        updateMap["data"] = updateDataMap
+
+                        updateAllDetailsMap[path!!] = updateMap
+                        updateAllDetailsMap["notes"] = notes
+
+                        (activity as MainActivity).updateMap["newdetails"] = updateAllDetailsMap
 
                         if (listAdapter == null) {
                             listAdapter = DetailsListAdapter(
@@ -322,7 +355,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
     private fun downloadData() {
         if(notes.size != 0)
         {
-            if(context != null && adapterItems.size != 0) {
+            if(context != null && adapterItems.size == 0) {
                 initializeAdapterList();
             }
             return
@@ -384,6 +417,8 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 map = HashMap()
                 map["title"] = key
                 map["data"] = value
+                map["path"] = path!!
+                map["created"] = (note["created"] as Date).toString()
                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                 adapterItems.add(map)
             }

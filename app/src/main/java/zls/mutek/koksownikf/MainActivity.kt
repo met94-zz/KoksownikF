@@ -271,6 +271,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         // Handle item selection
         when (item.itemId) {
             R.id.actionbar_save -> {
+                performSave()
                 if (saveLogs) {
                     Utils.saveLogcatToFile(this)
                 }
@@ -287,11 +288,68 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     fun performSave() {
         if(updateMap.size == 0) return
-        while(updateMap.size != 0) {
+        val db = FirebaseFirestore.getInstance()
+        //while(updateMap.size != 0) {
+        if(updateMap.size != 0) {
             if(updateMap.containsKey("newdirs")) {
                 val newDirsMap = updateMap["newdirs"] as HashMap<String, Any>
+                val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
                 for((key, value) in newDirsMap) {
-                    
+                    val docRef = collectionRef.document()
+                    var newVal = HashMap<String, Any>()
+                    newVal["path"] = value
+                    docRef.set(newVal)
+                }
+                updateMap.remove("newdirs")
+            }
+
+            if(updateMap.containsKey("newdetails")) {
+                val newDetailsMap = updateMap["newdetails"] as HashMap<String, Any>
+                val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
+                for((key, value) in newDetailsMap) {
+                    val query = collectionRef.whereEqualTo("path", key)
+                    query.get().addOnSuccessListener {
+                        it.forEach {
+                            val notesCollectionRef = it.reference.collection("notes")
+                            val updateMap = value as HashMap<String, String>
+                            val query = notesCollectionRef.whereEqualTo("created", updateMap["created"])
+                            query.get().addOnSuccessListener {
+
+                                var newVal = HashMap<String, Any>()
+                                newVal["created"] = updateMap["created"]!!
+                                newVal["data"] = updateMap["data"]!!
+                                if(it.size() == 0) {
+                                    val noteDoc = notesCollectionRef.document()
+                                    noteDoc.set(newVal)
+                                } else { //trzeba przetestowac ta wersje
+                                    it.forEach {
+                                        val notes: ArrayList<HashMap<String, *>>? = newDetailsMap["notes"] as? ArrayList<HashMap<String, *>>
+                                        (newVal["data"] as? HashMap<String, String>)?.let {
+                                            it.putAll((
+                                                notes?.filter { note ->
+                                                note["created"] == newVal["created"]
+                                            }
+                                                    ?.get(0)
+                                                    ?.get("data") as? HashMap<String, String>) ?: HashMap())
+                                        }
+                                        it.reference.update(newVal)
+                                    }
+                                }
+                                updateMap.remove("newdetails")
+                            }.addOnFailureListener{
+                                Log.d(TAG, "Error getting documents: ", it)
+                            }
+                        }
+                    }.addOnFailureListener{
+                        Log.d(TAG, "Error getting documents: ", it)
+                    }
+                    /*.addOnCompleteListener {
+
+                        Log.d(TAG, "Error getting documents: " + it.toString())
+                    }.addOnCanceledListener {
+                        Log.d(TAG, "Error getting documents: ")
+                    }
+                    */
                 }
             }
         }

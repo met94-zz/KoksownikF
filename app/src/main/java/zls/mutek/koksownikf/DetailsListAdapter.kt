@@ -103,32 +103,38 @@ class DetailsListAdapter(
 
     }
 
+
     override fun onFocusChange(v: View, hasFocus: Boolean) {
         val id = v.id
         when (id) {
             R.id.details_list_EditText1 -> if (!hasFocus) {
                 val map = v.tag as? HashMap<String, String>
-                if (map != null && map.containsKey("path") && map.containsKey("date")) {
+                if (map != null && map.containsKey("path") && map.containsKey("created")) {
                     val path = map["path"]
-                    if (!path!!.isEmpty() && !map["date"]!!.isEmpty()) {
+                    if (!path!!.isEmpty() && !map["created"]!!.isEmpty()) {
                         val newData = (v as EditText).text.toString()
-                        val updateMap = HashMap<String, String>()
-                        updateMap["data"] = newData
-                        updateMap["date"] = map["date"]!!
-                        //(fragment.activity as MainActivity).updateMap[path!!] = updateMap
+                        var updateAllDetailsMap = (fragment.activity as MainActivity).updateMap["newdetails"] as? HashMap<String, Any>
+                        if(updateAllDetailsMap == null)
+                            updateAllDetailsMap = HashMap<String, Any>()
 
-                        val detailsMap = HashMap<String, Any>()
-                        detailsMap[path!!] = updateMap
+                        var updateMap: HashMap<String, Any>?
+                        updateMap = updateAllDetailsMap[path!!] as? HashMap<String, Any>
+                        if(updateMap == null)
+                            updateMap = HashMap()
 
-                        (fragment.activity as MainActivity).updateMap["updatedetails"] = detailsMap
-                        /*
-                        val tree = fragment.tree?.getChildTreeByPath(path)
-                        val newData = (v as EditText).text.toString()
-                        if (tree?.data != null && tree?.data != newData) {
-                            tree?.data = newData
-                            map["data"] = newData
-                        }
-                        */
+                        if(!updateMap.containsKey("created"))
+                            updateMap["created"] = map["created"]!!
+
+                        if(!updateMap.containsKey("data"))
+                            updateMap["data"] = HashMap<String, String>()
+
+                        var updateDataMap = updateMap["data"] as HashMap<String, String>
+                        updateDataMap[map["title"]!!] = newData
+                        updateMap["data"] = updateDataMap
+
+                        updateAllDetailsMap[path!!] = updateMap
+
+                        (fragment.activity as MainActivity).updateMap["newdetails"] = updateAllDetailsMap
                     }
                 }
             }
