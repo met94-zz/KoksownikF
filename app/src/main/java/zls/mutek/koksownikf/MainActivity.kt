@@ -48,6 +48,8 @@ import android.content.pm.PackageManager.PERMISSION_GRANTED
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
@@ -117,11 +119,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         if (activeTheme == Themes.Dark) {
             ContextCompat.getDrawable(this, R.drawable.ic_save_black_48dp)!!.colorFilter =
-                    ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
+                ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
             ContextCompat.getDrawable(this, R.drawable.ic_add_circle_outline_black_48dp)!!.colorFilter =
-                    ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
+                ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
             ContextCompat.getDrawable(this, R.drawable.ic_history_black_48dp)!!.colorFilter =
-                    ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
+                ColorMatrixColorFilter(Utils.NEGATIVE_COLORFILTER)
         } else if (activeTheme == Themes.Light) {
             ContextCompat.getDrawable(this, R.drawable.ic_save_black_48dp)!!.clearColorFilter()
             ContextCompat.getDrawable(this, R.drawable.ic_add_circle_outline_black_48dp)!!.clearColorFilter()
@@ -287,14 +289,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     fun performSave() {
-        if(updateMap.size == 0) return
+        if (updateMap.size == 0) return
         val db = FirebaseFirestore.getInstance()
         //while(updateMap.size != 0) {
-        if(updateMap.size != 0) {
-            if(updateMap.containsKey("newdirs")) {
+        if (updateMap.size != 0) {
+            if (updateMap.containsKey("newdirs")) {
                 val newDirsMap = updateMap["newdirs"] as HashMap<String, Any>
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
-                for((key, value) in newDirsMap) {
+                for ((key, value) in newDirsMap) {
                     val docRef = collectionRef.document()
                     var newVal = HashMap<String, Any>()
                     newVal["path"] = value
@@ -303,53 +305,88 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 updateMap.remove("newdirs")
             }
 
-            if(updateMap.containsKey("newdetails")) {
+            if (updateMap.containsKey("newdetails")) {
                 val newDetailsMap = updateMap["newdetails"] as HashMap<String, Any>
+                if (newDetailsMap.size <= 1) {
+                    return
+                }
+                val notes: ArrayList<HashMap<String, *>>? =
+                    newDetailsMap["notes"] as? ArrayList<HashMap<String, *>>
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
-                for((key, value) in newDetailsMap) {
-                    val query = collectionRef.whereEqualTo("path", key)
-                    query.get().addOnSuccessListener {
-                        it.forEach {
-                            val notesCollectionRef = it.reference.collection("notes")
-                            val updateMap = value as HashMap<String, String>
-                            val query = notesCollectionRef.whereEqualTo("created", updateMap["created"])
+                //for((key, value) in newDetailsMap) {
+                //newDetailsMap.forEach { mapentry ->
+                newDetailsMap.iterator().let { newDetailsMapIterator ->
+                    while (newDetailsMapIterator.hasNext()) {
+                        val mapentry = newDetailsMapIterator.next()
+                        val key = mapentry.key
+                        val value = mapentry.value
+                        if (key != "notes") {
+                            val updateMap = value as HashMap<Date, Any>
+                            if (updateMap.isEmpty()) {
+                                newDetailsMapIterator.remove()
+                            }
+                            val query = collectionRef.whereEqualTo("path", key)
                             query.get().addOnSuccessListener {
+                                it.forEach {
+                                    val notesCollectionRef = it.reference.collection("notes")
 
-                                var newVal = HashMap<String, Any>()
-                                newVal["created"] = updateMap["created"]!!
-                                newVal["data"] = updateMap["data"]!!
-                                if(it.size() == 0) {
-                                    val noteDoc = notesCollectionRef.document()
-                                    noteDoc.set(newVal)
-                                } else { //trzeba przetestowac ta wersje
-                                    it.forEach {
-                                        val notes: ArrayList<HashMap<String, *>>? = newDetailsMap["notes"] as? ArrayList<HashMap<String, *>>
-                                        (newVal["data"] as? HashMap<String, String>)?.let {
-                                            it.putAll((
-                                                notes?.filter { note ->
-                                                note["created"] == newVal["created"]
-                                            }
-                                                    ?.get(0)
-                                                    ?.get("data") as? HashMap<String, String>) ?: HashMap())
+
+                                    //for ((key, updateDataMap) in updateMap) {
+                                    updateMap.iterator().let { updateMapIterator ->
+                                        while (updateMapIterator.hasNext()) {
+                                            val mapentry = updateMapIterator.next()
+                                            val key = mapentry.key
+                                            val updateDataMap = mapentry.value
+                                            val query = notesCollectionRef.whereEqualTo("created", key)
+                                            query.get().addOnSuccessListener {
+
+                                                var newVal = HashMap<String, Any>()
+                                                newVal["created"] = key
+                                                newVal["data"] = updateDataMap
+                                                if (it.size() == 0) {
+                                                    val noteDoc = notesCollectionRef.document()
+                                                    noteDoc.set(newVal)
+                                                    //updateMap.remove("newdetails")
+                                                } else { //trzeba przetestowac ta wersje
+                                                    it.forEach {
+
+                                                        (newVal["data"] as? HashMap<String, String>)?.let {
+                                                            (notes?.filter { note ->
+                                                                note["created"] == key
+                                                            }
+                                                                ?.get(0)
+                                                                ?.get("data") as? HashMap<String, String>)?.let { data ->
+                                                                data.forEach { d ->
+                                                                    if (!it.containsKey(d.key)) {
+                                                                        it.put(d.key, d.value)
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        //it.reference.update(newVal)
+                                                        it.reference.hashCode()
+                                                    }
+                                                }
+                                                updateMapIterator.remove()
+                                                //this.updateMap.remove("newdetails")
+                                                /*
+                                        this.updateMap["newdetails"].let {
+                                            it.hashCode()
+                                            ///tu trzeba dodac usuniecie tego co wlasnie zostalo dodane/zaktualizowane
                                         }
-                                        it.reference.update(newVal)
+                                        */
+                                            }.addOnFailureListener {
+                                                Log.d(TAG, "Error getting documents: ", it)
+                                            }
+                                            //updateMap.remove(key)
+                                        }
                                     }
                                 }
-                                updateMap.remove("newdetails")
-                            }.addOnFailureListener{
+                            }.addOnFailureListener {
                                 Log.d(TAG, "Error getting documents: ", it)
                             }
                         }
-                    }.addOnFailureListener{
-                        Log.d(TAG, "Error getting documents: ", it)
                     }
-                    /*.addOnCompleteListener {
-
-                        Log.d(TAG, "Error getting documents: " + it.toString())
-                    }.addOnCanceledListener {
-                        Log.d(TAG, "Error getting documents: ")
-                    }
-                    */
                 }
             }
         }

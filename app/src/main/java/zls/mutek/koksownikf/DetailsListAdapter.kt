@@ -40,8 +40,8 @@ import java.util.Random
 class DetailsListAdapter(
     context: Context, @param:LayoutRes @field:LayoutRes
     private val mResourceId: Int, @param:LayoutRes internal var mSeparatorId: Int, // declaring our ArrayList of items
-    private val mObjects: List<HashMap<String, String>>, internal var fragment: DetailsFragment
-) : ArrayAdapter<HashMap<String, String>>(context, mResourceId, mObjects), View.OnFocusChangeListener {
+    private val mObjects: List<HashMap<String, Any>>, internal var fragment: DetailsFragment
+) : ArrayAdapter<HashMap<String, Any>>(context, mResourceId, mObjects), View.OnFocusChangeListener {
 
     override fun getItemViewType(position: Int): Int {
         val map = mObjects[position]
@@ -65,7 +65,7 @@ class DetailsListAdapter(
             if (isSeparator) {
                 v = inflater.inflate(mSeparatorId, null)
                 val textView = v!!.findViewById<View>(R.id.details_list_TextView) as TextView
-                val created = map["created"]
+                val created = map["created"].toString()
                 textView.tag = created
                 textView.text = convertTimestampToDate(Date(Date.parse(created)))
                 return v
@@ -77,21 +77,22 @@ class DetailsListAdapter(
         if (!isSeparator) {
             val textView = v!!.findViewById<View>(R.id.details_list_TextView1) as TextView
             if (textView != null) {
-                textView.text = map["title"]!!.replace('_', ' ')
+                textView.text = (map["title"] as String).replace('_', ' ')
                 textView.tag = position
                 textView.setOnLongClickListener(fragment)
             }
 
             val editText = v.findViewById<View>(R.id.details_list_EditText1) as EditText
             if (editText != null) {
-                editText.setText(map["data"])
+                editText.setText(map["data"] as String)
                 //editText.setTag(position);
+                //map["position"] = position
                 editText.tag = map
                 editText.onFocusChangeListener = this
             }
         } else {
             val textView = v!!.findViewById<View>(R.id.details_list_TextView) as TextView
-            val created = map["created"]
+            val created = map["created"].toString()
             //if(!((String)(textView.getTag())).equals(timestamp)) {
             if (textView.tag != created) {
                 textView.text = convertTimestampToDate(Date(Date.parse(created)))
@@ -108,31 +109,44 @@ class DetailsListAdapter(
         val id = v.id
         when (id) {
             R.id.details_list_EditText1 -> if (!hasFocus) {
-                val map = v.tag as? HashMap<String, String>
+                val map = v.tag as? HashMap<String, Any>
                 if (map != null && map.containsKey("path") && map.containsKey("created")) {
-                    val path = map["path"]
-                    if (!path!!.isEmpty() && !map["created"]!!.isEmpty()) {
+                    val path = map["path"] as String
+                    val created = map["created"] as? Date
+                    if (!path.isEmpty() && created != null) {
                         val newData = (v as EditText).text.toString()
+                        fragment.adapterItems.filter {
+                            it["created"] == created && it["title"] == map["title"]
+                        }?.get(0)?.let {
+                            it["data"] = newData
+                        }
+
                         var updateAllDetailsMap = (fragment.activity as MainActivity).updateMap["newdetails"] as? HashMap<String, Any>
                         if(updateAllDetailsMap == null)
                             updateAllDetailsMap = HashMap<String, Any>()
 
-                        var updateMap: HashMap<String, Any>?
-                        updateMap = updateAllDetailsMap[path!!] as? HashMap<String, Any>
+                        var updateMap: HashMap<Date, Any>?
+                        updateMap = updateAllDetailsMap[path] as? HashMap<Date, Any>
                         if(updateMap == null)
                             updateMap = HashMap()
 
-                        if(!updateMap.containsKey("created"))
-                            updateMap["created"] = map["created"]!!
+                        //to jest zle skonstruowane pod updateAllDetailsMap[path!!] musi byc jeszcze jeden poziom gdzie created jest kluczem a kolejna mapa z data wartoscia
+                        //if(!updateMap.containsKey("created"))
+                        //    updateMap["created"] = map["created"]!!
 
-                        if(!updateMap.containsKey("data"))
-                            updateMap["data"] = HashMap<String, String>()
+                        //if(!updateMap.containsKey("data"))
+                        //    updateMap["data"] = HashMap<String, String>()
 
-                        var updateDataMap = updateMap["data"] as HashMap<String, String>
-                        updateDataMap[map["title"]!!] = newData
-                        updateMap["data"] = updateDataMap
+                        if(!updateMap.containsKey(created))
+                            updateMap[created] = HashMap<String, String>()
+
+
+                        var updateDataMap = updateMap[created] as HashMap<String, String>//updateMap["data"] as HashMap<String, String>
+                        updateDataMap[map["title"] as String] = newData
+                        updateMap[created] = updateDataMap
 
                         updateAllDetailsMap[path!!] = updateMap
+                        updateAllDetailsMap["notes"] = fragment.notes
 
                         (fragment.activity as MainActivity).updateMap["newdetails"] = updateAllDetailsMap
                     }

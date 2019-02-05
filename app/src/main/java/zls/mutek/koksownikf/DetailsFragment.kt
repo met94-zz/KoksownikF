@@ -40,6 +40,7 @@ import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.TextView
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -61,7 +62,7 @@ import kotlin.collections.HashMap
 class DetailsFragment : ListFragment(), View.OnLongClickListener {
     internal var path: String? = null
     internal var id: String? = null
-    var adapterItems = ArrayList<HashMap<String, String>>()
+    var adapterItems = ArrayList<HashMap<String, Any>>()
         private set(value) {
             field = value
         }
@@ -92,6 +93,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
             .setPositiveButton(R.string.delete) { dialog, which ->
                 val childName = map["title"]
                 val path = map["path"]
+                /*
                 if (childName != null && !childName.isEmpty()) {
                     //val child = tree!!.getChildTreeByPath(path!!)
                     //child?.setDeleteXmlEntry(true)
@@ -99,6 +101,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                     adapterItems.removeAt(position)
                     (listAdapter as DetailsListAdapter).notifyDataSetChanged()
                 }
+                */
             }.setNegativeButton(R.string.cancel) { dialog, which -> dialog.dismiss() }
         builder.create().show()
         return true
@@ -271,10 +274,10 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         newNode = Utils.validXMLName(this, newNode)
 
                         val date = Date(calendar.timeInMillis)
-                        val map = HashMap<String, String>()
+                        val map = HashMap<String, Any>()
                         map["title"] = newNode
                         map["data"] = data
-                        map["date"] = date.toString()
+                        //map["date"] = date.toString()
                         map["path"] = path!!
                                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                         adapterItems.add(0, map)
@@ -295,20 +298,17 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         updateMap[path!!]  = dataList
                         */
 
-                        var updateMap: HashMap<String, Any>?
-                        updateMap = updateAllDetailsMap[path!!] as? HashMap<String, Any>
+                        var updateMap: HashMap<Date, Any>?
+                        updateMap = updateAllDetailsMap[path!!] as? HashMap<Date, Any>
                         if(updateMap == null)
                             updateMap = HashMap()
 
-                        if(!updateMap.containsKey("created"))
-                            updateMap["created"] = date//.toString()
+                        if(!updateMap.containsKey(date))
+                            updateMap[date] = HashMap<String, String>()
 
-                        if(!updateMap.containsKey("data"))
-                            updateMap["data"] = HashMap<String, String>()
-
-                        var updateDataMap = updateMap["data"] as HashMap<String, String>
+                        var updateDataMap = updateMap[date] as HashMap<String, String>
                         updateDataMap[newNode] = data
-                        updateMap["data"] = updateDataMap
+                        updateMap[date] = updateDataMap
 
                         updateAllDetailsMap[path!!] = updateMap
                         updateAllDetailsMap["notes"] = notes
@@ -375,7 +375,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                                 Log.d(TAG, docDirRef.id + " => " + docDirRef.data)
                                 if(docDirRef.data["path"] == path) {
                                     val notesRef = dirsRef.document(docDirRef.id).collection("notes")
-                                    notesRef.get()
+                                    notesRef.orderBy("created", Query.Direction.DESCENDING).get()
                                         .addOnSuccessListener { result ->
                                             for (docNoteRef in result) {
                                                 Log.d(TAG, docNoteRef.id + " => " + docNoteRef.data)
@@ -404,13 +404,13 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
     }
 
     private fun initializeAdapterList() {
-        var map: HashMap<String, String>
+        var map: HashMap<String, Any>
         var mapNote: HashMap<String, String>
 
         for(note in notes) {
             map = HashMap()
             map["separator"] = "true"
-            map["created"] = (note["created"] as Date).toString()
+            map["created"] = note["created"]!!
             adapterItems.add(map)
             mapNote = note["data"] as HashMap<String, String>
             for ((key, value) in mapNote) {
@@ -418,7 +418,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 map["title"] = key
                 map["data"] = value
                 map["path"] = path!!
-                map["created"] = (note["created"] as Date).toString()
+                map["created"] = note["created"]!!
                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                 adapterItems.add(map)
             }
