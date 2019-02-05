@@ -56,6 +56,8 @@ class MainListFragment : ListFragment() {
     internal var dirs = ArrayList<String>()
     private var layoutView: View? = null
 
+    lateinit var activity: MainActivity
+
     internal var notes = ArrayList<HashMap<String, *>>()
 
     private val TAG = "MF_TAG"
@@ -151,11 +153,11 @@ class MainListFragment : ListFragment() {
                             if(!dirs.contains(newPath)) {
                                 dirs.add(newPath!!)
                                 adapterItems.add(newPath!!)
-                                var map = (activity as MainActivity).updateMap["newdirs"] as? HashMap<String, Any>
+                                var map = activity.updateMap["newdirs"] as? HashMap<String, Any>
                                 if(map == null)
                                     map = HashMap<String, Any>()
                                 map[path!!] = newPath
-                                (activity as MainActivity).updateMap["newdirs"] = map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
+                                activity.updateMap["newdirs"] = map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
                             }
                             //newPath.orEmpty()
                         }
@@ -198,6 +200,8 @@ class MainListFragment : ListFragment() {
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
+
+        activity = context as MainActivity
 
         if (listAdapter == null && this.dirs.size != 0) {
             listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)

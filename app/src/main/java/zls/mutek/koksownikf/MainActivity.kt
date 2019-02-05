@@ -49,6 +49,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
@@ -57,6 +58,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
      * getters and setters section
      */
     var updateMap: HashMap<String, Any> = HashMap<String, Any>()
+
+    var updatedDetailsMap: HashMap<String, ArrayList<Date>> = HashMap()
+
     var dirs: ArrayList<String> = arrayListOf()
     var playButtonPressed = false
     var stopButtonPressed = true
@@ -313,80 +317,84 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 val notes: ArrayList<HashMap<String, *>>? =
                     newDetailsMap["notes"] as? ArrayList<HashMap<String, *>>
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
-                //for((key, value) in newDetailsMap) {
-                //newDetailsMap.forEach { mapentry ->
-                newDetailsMap.iterator().let { newDetailsMapIterator ->
-                    while (newDetailsMapIterator.hasNext()) {
-                        val mapentry = newDetailsMapIterator.next()
-                        val key = mapentry.key
-                        val value = mapentry.value
-                        if (key != "notes") {
-                            val updateMap = value as HashMap<Date, Any>
-                            if (updateMap.isEmpty()) {
-                                newDetailsMapIterator.remove()
+
+                val filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
+                    updatedDetailsMap[mapEntry.key]?.let {
+                        it.size != (mapEntry.value as? Map<*,*>)?.size ?: -1
+                    } ?: true
+                }
+                if(filteredNewDetailsMap.size == 1) {
+                    if(filteredNewDetailsMap.containsKey("notes")) {
+                        updatedDetailsMap.clear()
+                        (updateMap["newdetails"] as HashMap<String, HashMap<Date, Any>>).iterator().run {
+                            while (hasNext()) {
+                                next()
+                                remove()
                             }
-                            val query = collectionRef.whereEqualTo("path", key)
-                            query.get().addOnSuccessListener {
-                                it.forEach {
-                                    val notesCollectionRef = it.reference.collection("notes")
+                        }
+                        return
+                    }
+                }
+                //for ((key, updateMap) in filteredNewDetailsMap) {
+                filteredNewDetailsMap.forEach {
+                    val key = it.key
+                    if (key != "notes") {
+                        val updateMap = it.value as HashMap<Date, Any>
+                        val query = collectionRef.whereEqualTo("path", key)
+                        query.get().addOnSuccessListener {
+                            it.forEach {
+                                val notesCollectionRef = it.reference.collection("notes")
 
+                                val filteredUpdateMap = updateMap.filter { mapEntry ->
+                                    updatedDetailsMap[key]?.let {
+                                        !it.contains(mapEntry.key)
+                                    } ?: true
+                                }
+                                if (filteredUpdateMap.size != 0) {
+                                    for ((dateCreated, updateDataMap) in filteredUpdateMap) {
+                                        val query = notesCollectionRef.whereEqualTo("created", dateCreated)
+                                        query.get().addOnSuccessListener {
 
-                                    //for ((key, updateDataMap) in updateMap) {
-                                    updateMap.iterator().let { updateMapIterator ->
-                                        while (updateMapIterator.hasNext()) {
-                                            val mapentry = updateMapIterator.next()
-                                            val key = mapentry.key
-                                            val updateDataMap = mapentry.value
-                                            val query = notesCollectionRef.whereEqualTo("created", key)
-                                            query.get().addOnSuccessListener {
+                                            var newVal = HashMap<String, Any>()
+                                            newVal["created"] = dateCreated
+                                            newVal["data"] = updateDataMap
+                                            if (it.size() == 0) {
+                                                val noteDoc = notesCollectionRef.document()
+                                                noteDoc.set(newVal)
+                                                //updateMap.remove("newdetails")
+                                            } else { //trzeba przetestowac ta wersje
+                                                it.forEach {
 
-                                                var newVal = HashMap<String, Any>()
-                                                newVal["created"] = key
-                                                newVal["data"] = updateDataMap
-                                                if (it.size() == 0) {
-                                                    val noteDoc = notesCollectionRef.document()
-                                                    noteDoc.set(newVal)
-                                                    //updateMap.remove("newdetails")
-                                                } else { //trzeba przetestowac ta wersje
-                                                    it.forEach {
-
-                                                        (newVal["data"] as? HashMap<String, String>)?.let {
-                                                            (notes?.filter { note ->
-                                                                note["created"] == key
-                                                            }
-                                                                ?.get(0)
-                                                                ?.get("data") as? HashMap<String, String>)?.let { data ->
-                                                                data.forEach { d ->
-                                                                    if (!it.containsKey(d.key)) {
-                                                                        it.put(d.key, d.value)
-                                                                    }
+                                                    (newVal["data"] as? HashMap<String, String>)?.let {
+                                                        (notes?.filter { note ->
+                                                            note["created"] == dateCreated
+                                                        }
+                                                            ?.get(0)
+                                                            ?.get("data") as? HashMap<String, String>)?.let { data ->
+                                                            data.forEach { d ->
+                                                                if (!it.containsKey(d.key)) {
+                                                                    it.put(d.key, d.value)
                                                                 }
                                                             }
                                                         }
-                                                        //it.reference.update(newVal)
-                                                        it.reference.hashCode()
                                                     }
+                                                    it.reference.update(newVal)
+                                                    //it.reference.hashCode()
                                                 }
-                                                updateMapIterator.remove()
-                                                //this.updateMap.remove("newdetails")
-                                                /*
-                                        this.updateMap["newdetails"].let {
-                                            it.hashCode()
-                                            ///tu trzeba dodac usuniecie tego co wlasnie zostalo dodane/zaktualizowane
-                                        }
-                                        */
-                                            }.addOnFailureListener {
-                                                Log.d(TAG, "Error getting documents: ", it)
                                             }
-                                            //updateMap.remove(key)
+                                            updatedDetailsMap[key] = updatedDetailsMap[key] ?: ArrayList()
+                                            updatedDetailsMap[key]?.add(dateCreated)
+                                        }.addOnFailureListener {
+                                            Log.d(TAG, "Error getting documents: ", it)
                                         }
                                     }
                                 }
-                            }.addOnFailureListener {
-                                Log.d(TAG, "Error getting documents: ", it)
                             }
+                        }.addOnFailureListener {
+                            Log.d(TAG, "Error getting documents: ", it)
                         }
                     }
+
                 }
             }
         }

@@ -62,6 +62,7 @@ import kotlin.collections.HashMap
 class DetailsFragment : ListFragment(), View.OnLongClickListener {
     internal var path: String? = null
     internal var id: String? = null
+    lateinit var activity: MainActivity
     var adapterItems = ArrayList<HashMap<String, Any>>()
         private set(value) {
             field = value
@@ -282,21 +283,9 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                         adapterItems.add(0, map)
 
-                        var updateAllDetailsMap = (activity as MainActivity).updateMap["newdetails"] as? HashMap<String, Any>
+                        var updateAllDetailsMap = activity.updateMap["newdetails"] as? HashMap<String, Any>
                         if(updateAllDetailsMap == null)
                             updateAllDetailsMap = HashMap<String, Any>()
-
-                        /*
-                        var dataList: ArrayList<HashMap<String, String>>
-                        if(updateMap.containsKey(path!!)) {
-                            dataList = updateMap[path!!] as ArrayList<HashMap<String, String>>
-                        } else {
-                            dataList = ArrayList<HashMap<String, String>>()
-                        }
-                        dataList.add(map)
-
-                        updateMap[path!!]  = dataList
-                        */
 
                         var updateMap: HashMap<Date, Any>?
                         updateMap = updateAllDetailsMap[path!!] as? HashMap<Date, Any>
@@ -313,7 +302,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         updateAllDetailsMap[path!!] = updateMap
                         updateAllDetailsMap["notes"] = notes
 
-                        (activity as MainActivity).updateMap["newdetails"] = updateAllDetailsMap
+                        activity.updateMap["newdetails"] = updateAllDetailsMap
 
                         if (listAdapter == null) {
                             listAdapter = DetailsListAdapter(
@@ -438,6 +427,8 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
+
+        activity = context as MainActivity
 
         if (validTree()) {
             /*

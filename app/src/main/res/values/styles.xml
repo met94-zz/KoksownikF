@@ -1,5 +1,4 @@
 <resources>
-    <attr name="pathBarColor" format="reference|color" />
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat">
         <!-- Customize your theme here.
