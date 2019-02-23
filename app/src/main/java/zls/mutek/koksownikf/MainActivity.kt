@@ -61,6 +61,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     var updatedDetailsMap: HashMap<String, ArrayList<Date>> = HashMap()
 
+    var updateInProgress = false
+
     var dirs: ArrayList<String> = arrayListOf()
     var playButtonPressed = false
     var stopButtonPressed = true
@@ -99,6 +101,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         //FirebaseApp.initializeApp(this )
+        //FirebaseFirestore.getInstance().disableNetwork()
 
         //initializing settings
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
@@ -158,15 +161,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
         }
 
-        val fr = MainListFragment()
-        val args = Bundle(1)
-        args.putString("path", "root")
-        fr.arguments = args
+        val fr = MainListFragment.newInstance("root", null, null)
         supportFragmentManager.beginTransaction().add(R.id.fragment_container, fr).commit()
 
         timer_play_Button.setOnClickListener(this)
         timer_stop_Button.setOnClickListener(this)
 
+        updateMap["details"] = updateMap["details"] ?: HashMap<String, Any>()
+        downloadDirsData(fr)
+    }
+
+    private fun downloadDirsData(fr: MainListFragment)
+    {
         // Access a Cloud Firestore instance from your Activity
         val db = FirebaseFirestore.getInstance()
         val docRef = db.collection("users").document("CycxoH93888zgq31fry6")
@@ -292,77 +298,96 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    fun checkDetailsUpdateFinished(newDetailsMap: HashMap<String, Any>, filteredNewDetailsMap: Map<String, Any>?): Boolean {
+        var _filteredNewDetailsMap = filteredNewDetailsMap
+        if(_filteredNewDetailsMap == null) {
+            _filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
+                updatedDetailsMap[mapEntry.key]?.let {
+                    it.size != (mapEntry.value as? Map<*, *>)?.size?.let { it - 1 } ?: -1
+                } ?: true
+            }
+        }
+        if (_filteredNewDetailsMap.isEmpty()) {
+            updatedDetailsMap.clear()
+            (updateMap["details"] as HashMap<String, HashMap<Date, Any>>).iterator().run {
+                while (hasNext()) {
+                    next()
+                    remove()
+                }
+            }
+            if(!updateInProgress)
+                Toast.makeText(this, "No changes detected", Toast.LENGTH_LONG)
+            updateInProgress = false
+            return false
+        }
+
+        if (updateInProgress) {
+            Toast.makeText(this, "Last update still in progress", Toast.LENGTH_LONG).show()
+            return false
+        }
+
+        updateInProgress = true
+        return true
+    }
+
     fun performSave() {
         if (updateMap.size == 0) return
         val db = FirebaseFirestore.getInstance()
         //while(updateMap.size != 0) {
         if (updateMap.size != 0) {
-            if (updateMap.containsKey("newdirs")) {
-                val newDirsMap = updateMap["newdirs"] as HashMap<String, Any>
+            if (updateMap.containsKey("dirs")) {
+                //updateInProgress = true //no need as it should happen immeadietly
+                val newDirsMap = updateMap["dirs"] as HashMap<String, Any>
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
                 for ((key, value) in newDirsMap) {
                     val docRef = collectionRef.document()
-                    var newVal = HashMap<String, Any>()
+                    val newVal = HashMap<String, Any>()
                     newVal["path"] = value
                     docRef.set(newVal)
                 }
-                updateMap.remove("newdirs")
+                updateMap.remove("dirs")
             }
 
-            if (updateMap.containsKey("newdetails")) {
-                val newDetailsMap = updateMap["newdetails"] as HashMap<String, Any>
-                if (newDetailsMap.size <= 1) {
-                    return
-                }
-                val notes: ArrayList<HashMap<String, *>>? =
-                    newDetailsMap["notes"] as? ArrayList<HashMap<String, *>>
-                val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
+            if (updateMap.containsKey("details")) {
+                val newDetailsMap = updateMap["details"] as HashMap<String, Any>
 
                 val filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                     updatedDetailsMap[mapEntry.key]?.let {
-                        it.size != (mapEntry.value as? Map<*,*>)?.size ?: -1
+                        it.size != (mapEntry.value as? Map<*, *>)?.size?.let { it - 1 } ?: -1
                     } ?: true
                 }
-                if(filteredNewDetailsMap.size == 1) {
-                    if(filteredNewDetailsMap.containsKey("notes")) {
-                        updatedDetailsMap.clear()
-                        (updateMap["newdetails"] as HashMap<String, HashMap<Date, Any>>).iterator().run {
-                            while (hasNext()) {
-                                next()
-                                remove()
-                            }
-                        }
-                        return
-                    }
-                }
-                //for ((key, updateMap) in filteredNewDetailsMap) {
-                filteredNewDetailsMap.forEach {
-                    val key = it.key
-                    if (key != "notes") {
-                        val updateMap = it.value as HashMap<Date, Any>
-                        val query = collectionRef.whereEqualTo("path", key)
-                        query.get().addOnSuccessListener {
-                            it.forEach {
-                                val notesCollectionRef = it.reference.collection("notes")
 
-                                val filteredUpdateMap = updateMap.filter { mapEntry ->
-                                    updatedDetailsMap[key]?.let {
-                                        !it.contains(mapEntry.key)
-                                    } ?: true
-                                }
-                                if (filteredUpdateMap.size != 0) {
-                                    for ((dateCreated, updateDataMap) in filteredUpdateMap) {
+                if(!checkDetailsUpdateFinished(newDetailsMap, filteredNewDetailsMap))
+                    return
+
+                val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
+
+                for ((key, value) in filteredNewDetailsMap) {
+                    val updateMap = value as HashMap<Date, Any>
+                    val query = collectionRef.whereEqualTo("path", key)
+                    query.get().addOnSuccessListener {
+                        it.forEach {
+                            val notesCollectionRef = it.reference.collection("notes")
+
+                            val filteredUpdateMap = updateMap.filter { mapEntry ->
+                                updatedDetailsMap[key]?.let {
+                                    !it.contains(mapEntry.key)
+                                } ?: true
+                            }
+                            if (filteredUpdateMap.size != 0) {
+                                for ((dateCreated, updateDataMap) in filteredUpdateMap) {
+                                    if (dateCreated != Date(0)) {
                                         val query = notesCollectionRef.whereEqualTo("created", dateCreated)
                                         query.get().addOnSuccessListener {
-
+                                            val notes: ArrayList<HashMap<String, *>>? =
+                                                filteredUpdateMap[Date(0)] as? ArrayList<HashMap<String, *>>
                                             var newVal = HashMap<String, Any>()
                                             newVal["created"] = dateCreated
                                             newVal["data"] = updateDataMap
                                             if (it.size() == 0) {
                                                 val noteDoc = notesCollectionRef.document()
                                                 noteDoc.set(newVal)
-                                                //updateMap.remove("newdetails")
-                                            } else { //trzeba przetestowac ta wersje
+                                            } else {
                                                 it.forEach {
 
                                                     (newVal["data"] as? HashMap<String, String>)?.let {
@@ -378,23 +403,29 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                                             }
                                                         }
                                                     }
-                                                    it.reference.update(newVal)
+                                                    it.reference.update(newVal).addOnSuccessListener {
+                                                        Log.d(TAG, "addOnSuccessListener update reference")
+                                                        //sprawdzic tu czy wykonuje sie dopiero po wejsciu w online
+                                                    }.addOnCompleteListener{
+                                                        Log.d(TAG, "addOnCompleteListener update reference")
+                                                    }
+
                                                     //it.reference.hashCode()
                                                 }
                                             }
                                             updatedDetailsMap[key] = updatedDetailsMap[key] ?: ArrayList()
                                             updatedDetailsMap[key]?.add(dateCreated)
+                                            checkDetailsUpdateFinished(newDetailsMap, null)
                                         }.addOnFailureListener {
                                             Log.d(TAG, "Error getting documents: ", it)
                                         }
                                     }
                                 }
                             }
-                        }.addOnFailureListener {
-                            Log.d(TAG, "Error getting documents: ", it)
                         }
+                    }.addOnFailureListener {
+                        Log.d(TAG, "Error getting documents: ", it)
                     }
-
                 }
             }
         }

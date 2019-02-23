@@ -60,8 +60,7 @@ import kotlin.collections.HashMap
  */
 
 class DetailsFragment : ListFragment(), View.OnLongClickListener {
-    internal var path: String? = null
-    internal var id: String? = null
+    lateinit var path: String
     lateinit var activity: MainActivity
     var adapterItems = ArrayList<HashMap<String, Any>>()
         private set(value) {
@@ -76,12 +75,15 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
     internal var newFileTimestamp: String = ""
     internal var limitLoad = 0x00000002
 
-    private val TAG = "DF_TAG"
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+
+        path = arguments?.getString("path") ?: ""
+        notes = arguments?.getSerializable("notes") as ArrayList<HashMap<String, *>>
+        activity.path_textView?.text = path.substring(path.indexOf("/") + 1)
+        downloadData()
     }
 
     fun onDeleteItem(position: Int): Boolean {
@@ -153,12 +155,12 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 lp.gravity = Gravity.BOTTOM or Gravity.RIGHT
                 moreButton.layoutParams = lp
                 moreButton.setOnClickListener{
+                        /*
                         limitLoad += 2 and 0xFFFF
                         val filename = id!! + ".xml"
                         val file = context!!.getFileStreamPath(filename)
                         if (file.exists()) {
                             try {
-                                /*
                                 val `in` = context!!.openFileInput(filename)
                                 val oldSize = tree!!.getChildren()!!.size
                                 //tree = XMLUtils(activity as MainActivity)
@@ -201,7 +203,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                                         (listAdapter as DetailsListAdapter).notifyDataSetChanged()
                                     }
                                 }
-                                */
+
                             } catch (e: FileNotFoundException) {
                                 Utils.showAlertDialog(activity as Context, R.string.error_occurred, R.string.file_no_exists)
                                 Log.w(TAG, getString(R.string.file_no_exists))
@@ -217,6 +219,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                             }
 
                         }
+                        */
                     }
                 listContainer.addView(moreButton)
             }
@@ -226,9 +229,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
 
     override fun onResume() {
         super.onResume()
-        if (path != null) {
-            activity?.path_textView?.text = path!!.substring(path!!.indexOf("/") + 1)
-        }
+        activity.path_textView?.text = path.substring(path.indexOf("/") + 1)
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
@@ -236,13 +237,13 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         when (item!!.itemId) {
             R.id.actionbar_add -> {
 
-                val dialog = Dialog(context!!)
+                val dialog = Dialog(activity)
                 dialog.setContentView(R.layout.dialog_add_details)
                 dialog.setTitle(R.string.add)
                 val bt = dialog.findViewById<View>(R.id.dialog_add_Button) as Button
                 val et = dialog.findViewById<View>(R.id.dialog_add_editText2) as EditText
                 et.filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
-                    if (source.length > 0) {
+                    if (source.isNotEmpty()) {
                         val ch = source[0]
                         if (ch == ':') {// || ch == ' ') {
                             return@InputFilter "_"
@@ -278,35 +279,28 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         val map = HashMap<String, Any>()
                         map["title"] = newNode
                         map["data"] = data
-                        //map["date"] = date.toString()
-                        map["path"] = path!!
-                                //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
+                        map["path"] = path
                         adapterItems.add(0, map)
 
-                        var updateAllDetailsMap = activity.updateMap["newdetails"] as? HashMap<String, Any>
-                        if(updateAllDetailsMap == null)
-                            updateAllDetailsMap = HashMap<String, Any>()
+                        val updateAllDetailsMap = activity.updateMap["details"] as? HashMap<String, Any> ?: HashMap()
 
-                        var updateMap: HashMap<Date, Any>?
-                        updateMap = updateAllDetailsMap[path!!] as? HashMap<Date, Any>
-                        if(updateMap == null)
-                            updateMap = HashMap()
+                        val updateMap = updateAllDetailsMap[path!!] as? HashMap<Date, Any> ?: HashMap()
 
                         if(!updateMap.containsKey(date))
                             updateMap[date] = HashMap<String, String>()
 
-                        var updateDataMap = updateMap[date] as HashMap<String, String>
+                        val updateDataMap = updateMap[date] as HashMap<String, String>
                         updateDataMap[newNode] = data
                         updateMap[date] = updateDataMap
+                        updateMap[Date(0)] = notes
 
-                        updateAllDetailsMap[path!!] = updateMap
-                        updateAllDetailsMap["notes"] = notes
+                        updateAllDetailsMap[path] = updateMap
 
-                        activity.updateMap["newdetails"] = updateAllDetailsMap
+                        activity.updateMap["details"] = updateAllDetailsMap
 
                         if (listAdapter == null) {
                             listAdapter = DetailsListAdapter(
-                                activity!!,
+                                activity,
                                 R.layout.details_list_layout,
                                 R.layout.details_list_separator,
                                 adapterItems,
@@ -315,7 +309,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         }
                         (listAdapter as DetailsListAdapter).notifyDataSetChanged()
                     }
-                    dialog?.dismiss()
+                    dialog.dismiss()
                 }
                 dialog.show()
                 return true
@@ -324,28 +318,11 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         }
     }
 
-    private fun validTree(): Boolean {
-        if (id == null) {
-            id = if (arguments != null) arguments!!.getString("id") else ""
-        }
-
-        if (path == null) {
-            path = if (arguments != null) arguments!!.getString("path") else ""
-            activity?.path_textView?.text = path!!.substring(path!!.indexOf("/") + 1)
-        }
-
-        if (activity == null) {
-            return false
-        }
-
-        return true
-    }
-
     private fun downloadData() {
         if(notes.size != 0)
         {
             if(context != null && adapterItems.size == 0) {
-                initializeAdapterList();
+                initializeAdapterList()
             }
             return
         }
@@ -406,7 +383,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 map = HashMap()
                 map["title"] = key
                 map["data"] = value
-                map["path"] = path!!
+                map["path"] = path
                 map["created"] = note["created"]!!
                 //map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
                 adapterItems.add(map)
@@ -429,29 +406,21 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         super.onAttach(context)
 
         activity = context as MainActivity
-
-        if (validTree()) {
-            /*
-            val children = tree!!.getChildren()
-            Collections.sort(children, Comparator { o1, o2 ->
-                try {
-                    return@Comparator (java.lang.Long.parseLong(o2.nodeName!!.substring(1)) - java.lang.Long.parseLong(
-                        o1.nodeName!!.substring(
-                            1
-                        )
-                    )).toInt()
-                } catch (e: Exception) {
-                    return@Comparator 1
-                }
-            })
-
-            */
-            downloadData()
-        }
     }
 
     companion object {
 
         private val TAG = "DETAILS_TAG"
+
+        fun newInstance(path: String, notes: ArrayList<HashMap<String, *>>?): DetailsFragment {
+            val myFragment = DetailsFragment()
+
+            val args = Bundle(1)
+            args.putString("path", path)
+            notes?.let { args.putSerializable("notes", it) }
+            myFragment.arguments = args
+
+            return myFragment
+        }
     }
 }

@@ -50,13 +50,14 @@ import java.util.HashMap
 
 class MainListFragment : ListFragment() {
 
-    internal var path: String? = null
-    public var curPath: String? = ""
+    lateinit var activity: MainActivity
+    lateinit var path: String
+
+    var curPath: String = ""
     internal var adapterItems = ArrayList<String>()
     internal var dirs = ArrayList<String>()
     private var layoutView: View? = null
 
-    lateinit var activity: MainActivity
 
     internal var notes = ArrayList<HashMap<String, *>>()
 
@@ -64,7 +65,20 @@ class MainListFragment : ListFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setHasOptionsMenu(true)
+
+        path = arguments?.getString("path") ?: ""
+        curPath = arguments?.getString("curPath") ?: ""
+        arguments?.getSerializable("dirs")?.let {
+            initializeAdapterList(it as ArrayList<String>)
+        }
+
+        activity.path_textView?.text = path.substring(path.indexOf("/") + 1)
+
+        if (listAdapter == null && this.dirs.size != 0) {
+            listAdapter = MainListAdapter(activity, R.layout.main_list_layout, adapterItems, this)
+        }
     }
 
     @SuppressLint("ResourceType")
@@ -80,25 +94,25 @@ class MainListFragment : ListFragment() {
 
                 val listView = listContainer.findViewById<View>(android.R.id.list) as ListView?
                 listView?.onItemLongClickListener =
-                        AdapterView.OnItemLongClickListener { parent, view, position, id ->
-                            val builder = AlertDialog.Builder(activity)
-                            builder.setTitle(R.string.remove).setMessage(R.string.remove_node)
-                                .setPositiveButton(R.string.delete) { dialog, which ->
-                                    //tree.getChild(position).setDeleteXmlEntry(true);
-                                    /*
-                                    val childName = adapterItems[position]["title"]
-                                    if (childName != null && !childName.isEmpty()) {
-                                        val child = tree!!.getChild(childName)
-                                        child!!.setDeleteXmlEntry(true)
-                                        //child.children.clear()
-                                        adapterItems.removeAt(position)
-                                        (listAdapter as MainListAdapter).notifyDataSetChanged()
-                                    }
-                                    */
-                                }.setNegativeButton(R.string.cancel) { dialog, which -> dialog.dismiss() }
-                            builder.create().show()
-                            true
-                        }
+                    AdapterView.OnItemLongClickListener { parent, view, position, id ->
+                        val builder = AlertDialog.Builder(activity)
+                        builder.setTitle(R.string.remove).setMessage(R.string.remove_node)
+                            .setPositiveButton(R.string.delete) { dialog, which ->
+                                //tree.getChild(position).setDeleteXmlEntry(true);
+                                /*
+                                val childName = adapterItems[position]["title"]
+                                if (childName != null && !childName.isEmpty()) {
+                                    val child = tree!!.getChild(childName)
+                                    child!!.setDeleteXmlEntry(true)
+                                    //child.children.clear()
+                                    adapterItems.removeAt(position)
+                                    (listAdapter as MainListAdapter).notifyDataSetChanged()
+                                }
+                                */
+                            }.setNegativeButton(R.string.cancel) { dialog, which -> dialog.dismiss() }
+                        builder.create().show()
+                        true
+                    }
             }
         }
         return layoutView
@@ -106,9 +120,7 @@ class MainListFragment : ListFragment() {
 
     override fun onResume() {
         super.onResume()
-        if (path != null) {
-            activity?.path_textView?.text = path!!.substring(path!!.indexOf("/") + 1)
-        }
+        activity.path_textView?.text = path.substring(path.indexOf("/") + 1)
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
@@ -121,7 +133,7 @@ class MainListFragment : ListFragment() {
                 dialog.setTitle(R.string.add)
                 val et = dialog.dialog_add_editText
                 et.filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
-                    if (source.length > 0) {
+                    if (source.isNotEmpty()) {
                         val ch = source[0]
                         if (ch == ':') {// || ch == ' ') {
                             return@InputFilter "_"
@@ -142,28 +154,27 @@ class MainListFragment : ListFragment() {
                 bt.setOnClickListener {
                     var newNode: String? = et.text.toString()
                     if (newNode != null && !newNode.isEmpty()) {// && validTree()) {
-                        if(!Utils.isValidXMLName(newNode)) { //any invalid characters?
+                        if (!Utils.isValidXMLName(newNode)) { //any invalid characters?
                             newNode = Utils.fixXMLName(newNode) //fix invalid characters
                         }
-                        if (!checkBox.isChecked) {
-
-                        } else {
-                            var newPath = path?.substring(0, (path?.indexOf(curPath!!) ?: 0) + (curPath?.length ?: 0))
-                            newPath += "/$newNode/"
-                            if(!dirs.contains(newPath)) {
-                                dirs.add(newPath!!)
-                                adapterItems.add(newPath!!)
-                                var map = activity.updateMap["newdirs"] as? HashMap<String, Any>
-                                if(map == null)
-                                    map = HashMap<String, Any>()
-                                map[path!!] = newPath
-                                activity.updateMap["newdirs"] = map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
-                            }
-                            //newPath.orEmpty()
+                        var newPath = path.substring(0, (path.indexOf(curPath!!)) + (curPath?.length ?: 0))
+                        newPath += "/$newNode/"
+                        if (!checkBox.isChecked)
+                            newPath += "*";
+                        if (!dirs.contains(newPath)) {
+                            dirs.add(newPath)
+                            adapterItems.add(newPath)
+                            var map = activity.updateMap["dirs"] as? HashMap<String, Any>
+                            if (map == null)
+                                map = HashMap<String, Any>()
+                            map[path] = newPath
+                            activity.updateMap["dirs"] =
+                                map //przy zapisie zrobic jakies mergowanie sciezek np w thegym nie ma dira tricek i zostaly utworzone thegym/tricek/beton i thegym/tricek wiec nie potrzebujemy same thegym/tricek
                         }
+                        //newPath.orEmpty()
                         if (listAdapter == null) {
                             listAdapter = MainListAdapter(
-                                activity!!,
+                                activity,
                                 R.layout.main_list_layout,
                                 adapterItems,
                                 this@MainListFragment
@@ -184,128 +195,97 @@ class MainListFragment : ListFragment() {
         }
     }
 
-    private fun validTree(): Boolean {
-        if (path == null) {
-            path = if (arguments != null) arguments!!.getString("path") else ""
-            activity?.path_textView?.text = path!!.substring(path!!.indexOf("/") + 1)
-        }
-/*
-        if(curPath == null) {
-            curPath = arguments?.getString("curPath") ?: ""
-            (listAdapter as MainListAdapter?)?.notifyDataSetChanged()
-        }
-*/
-        return true;
-    }
-
-    override fun onAttach(context: Context?) {
+    override fun onAttach(context: Context) {
         super.onAttach(context)
 
         activity = context as MainActivity
-
-        if (listAdapter == null && this.dirs.size != 0) {
-            listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)
-        }
-
     }
 
-    fun initializeAdapterList(dirs: ArrayList<String>)
-    {
-        if(this.dirs.size != 0) return
-        validTree();
+    fun initializeAdapterList(dirs: ArrayList<String>) {
+        if (this.dirs.size != 0) return
         this.dirs = dirs
         //if(curPath.isNullOrEmpty())
         //    adapterItems.addAll(dirs)
         //else {
-            var level = -1
-            var isRoot = 0
-            if(!curPath.isNullOrEmpty()) {
-                val splitted = path?.split('/')
-                for (i in splitted!!.indices) {
-                    if (splitted[i] == curPath) {
-                        level = i
-                        break
-                    }
-                }
-            } else {
-                level = 1
-                isRoot = 1
-            }
-            if(level != -1) {
-                var helpArray = ArrayList<String>()
-                for(dir in dirs) {
-                    val splitted = dir.split('/')
-                    if(level >= splitted.size) continue
-                    //trzeba dodac jakies sprawdzenie czy wczesniejsza czesc sciezki sie zgadza
-                    val checkIndex = if(isRoot != 0) level else level+1
-                    if((splitted[level] == curPath || curPath.isNullOrEmpty()) && //first should valid if that curpath matches so we wont get bound of array below
-                        !helpArray.contains(splitted[checkIndex])
-                    ) {
-                        if(!splitted[checkIndex].isEmpty()) {
-                            adapterItems.add(dir)
-                            helpArray.add(splitted[checkIndex])
-                        }
-                    }
+        var level = -1
+        var isRoot = 0
+        if (!curPath.isNullOrEmpty()) {
+            val splitted = path.split('/')
+            for (i in splitted.indices) {
+                if (splitted[i] == curPath) {
+                    level = i
+                    break
                 }
             }
+        } else {
+            level = 1
+            isRoot = 1
+        }
+        if (level != -1) {
+            var helpArray = ArrayList<String>()
+            for (dir in dirs) {
+                val splitted = dir.split('/')
+                if (level >= splitted.size) continue
+                //trzeba dodac jakies sprawdzenie czy wczesniejsza czesc sciezki sie zgadza
+                val checkIndex = if (isRoot != 0) level else level + 1
+                if ((splitted[level] == curPath || curPath.isNullOrEmpty()) && //first should valid if that curpath matches so we wont get bound of array below
+                    !helpArray.contains(splitted[checkIndex])
+                ) {
+                    if (!splitted[checkIndex].isEmpty()) {
+                        adapterItems.add(dir)
+                        helpArray.add(splitted[checkIndex])
+                    }
+                }
+            }
+        }
         //}
         if (listAdapter == null && context != null) {
             listAdapter = MainListAdapter(context!!, R.layout.main_list_layout, adapterItems, this)
-        }
-        else (listAdapter as MainListAdapter?)?.notifyDataSetChanged()
+        } else (listAdapter as MainListAdapter?)?.notifyDataSetChanged()
     }
 
     override fun onListItemClick(l: ListView?, v: View?, position: Int, id: Long) {
         var fr: ListFragment? = null
         val args = Bundle(2)
-        /*
-        val childName = adapterItems[position]["title"]
-        args.putString("path", "$path/$childName")
-        val child = tree!!.getChild(childName!!)
-        if (child != null) {
-            val data = child.data
-            if (data != null && data.startsWith("JOP")) {// && File(activity!!.filesDir.toString() + "/" + data + ".xml").exists()) {
-                fr = DetailsFragment()
-                args.putString("id", child.data)
-            }
-        }
-        */
-        //if(path == null || path == "root")
-            path = adapterItems[position]
-            //path = dirs[position]
+
+        path = adapterItems[position]
         args.putString("path", path)
-        var nextPath =  ""
-        /*
-        var startIndex = path?.indexOf(curPath!!) ?: 0
-        startIndex = if(startIndex != -1) startIndex+1 else 0
-        nextPath = path?.substring(startIndex, path?.indexOf('/', startIndex)!! ) ?: ""
-        args.putString("curPath", nextPath)
-        */
-        val splitted = path?.split('/')
+        var nextPath = ""
+        val splitted = path.split('/')
         var index = -1
-        for(i in splitted!!.indices) {
-            if(splitted[i] == curPath) {
-                nextPath = splitted[i+1]
+        for (i in splitted.indices) {
+            if (splitted[i] == curPath) {
+                nextPath = splitted[i + 1]
                 index = i
                 break
             }
         }
-        if(index != -1 && (index+2) < splitted.size && splitted[index+2] == "*") {
-            fr = DetailsFragment()
-            fr.arguments = args
-            if(notes.size != 0)
-                fr.notes = notes
+        if (index != -1 && (index + 2) < splitted.size && splitted[index + 2] == "*") {
+            fr = DetailsFragment.newInstance(path, notes)
         } else {
-            fr = MainListFragment()
-            fr.arguments = args
-            fr.curPath = nextPath
-            fr.initializeAdapterList(dirs)
+            fr = MainListFragment.newInstance(path, nextPath, dirs)
         }
 
-        fragmentManager!!.addOnBackStackChangedListener{
-            if(fr is DetailsFragment)
+        fragmentManager!!.addOnBackStackChangedListener {
+            if (fr is DetailsFragment)
                 this.notes = fr.notes
         }
         fragmentManager!!.beginTransaction().replace(R.id.fragment_container, fr).addToBackStack(null).commit()
+    }
+
+
+    companion object {
+
+        fun newInstance(path: String, curPath: String?, dirs: ArrayList<*>?): MainListFragment {
+            val myFragment = MainListFragment()
+
+            val args = Bundle(1)
+            args.putString("path", path)
+            curPath?.let { args.putString("curPath", it) }
+            dirs?.let { args.putSerializable("dirs", it) }
+            myFragment.arguments = args
+
+            return myFragment
+        }
     }
 }

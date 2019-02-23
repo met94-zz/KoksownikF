@@ -92,10 +92,10 @@ class DetailsListAdapter(
             }
         } else {
             val textView = v!!.findViewById<View>(R.id.details_list_TextView) as TextView
-            val created = map["created"].toString()
+            val created = map["created"] as Date//.toString()
             //if(!((String)(textView.getTag())).equals(timestamp)) {
             if (textView.tag != created) {
-                textView.text = convertTimestampToDate(Date(Date.parse(created)))
+                textView.text = convertTimestampToDate(created)//Date(Date.parse(created)))
             }
         }
 
@@ -121,34 +121,30 @@ class DetailsListAdapter(
                             it["data"] = newData
                         }
 
-                        var updateAllDetailsMap = (fragment.activity as MainActivity).updateMap["newdetails"] as? HashMap<String, Any>
-                        if(updateAllDetailsMap == null)
-                            updateAllDetailsMap = HashMap<String, Any>()
+                        fragment.notes.filter {
+                            it["created"] == created
+                        }.get(0).let {
+                            (it as? HashMap<String, HashMap<String, String>>)?.get("data")?.let {
+                                it[map["title"] as String] = newData
+                            }
+                        }
 
-                        var updateMap: HashMap<Date, Any>?
-                        updateMap = updateAllDetailsMap[path] as? HashMap<Date, Any>
-                        if(updateMap == null)
-                            updateMap = HashMap()
+                        var updateAllDetailsMap = fragment.activity.updateMap["details"] as? HashMap<String, Any> ?: HashMap()
 
-                        //to jest zle skonstruowane pod updateAllDetailsMap[path!!] musi byc jeszcze jeden poziom gdzie created jest kluczem a kolejna mapa z data wartoscia
-                        //if(!updateMap.containsKey("created"))
-                        //    updateMap["created"] = map["created"]!!
+                        var updateMap: HashMap<Date, Any> = updateAllDetailsMap[path] as? HashMap<Date, Any> ?: HashMap()
 
-                        //if(!updateMap.containsKey("data"))
-                        //    updateMap["data"] = HashMap<String, String>()
-
-                        if(!updateMap.containsKey(created))
+                        if (!updateMap.containsKey(created))
                             updateMap[created] = HashMap<String, String>()
 
 
-                        var updateDataMap = updateMap[created] as HashMap<String, String>//updateMap["data"] as HashMap<String, String>
+                        var updateDataMap = updateMap[created] as HashMap<String, String>
                         updateDataMap[map["title"] as String] = newData
                         updateMap[created] = updateDataMap
+                        updateMap[Date(0)] = fragment.notes
 
-                        updateAllDetailsMap[path!!] = updateMap
-                        updateAllDetailsMap["notes"] = fragment.notes
+                        updateAllDetailsMap[path] = updateMap
 
-                        (fragment.activity as MainActivity).updateMap["newdetails"] = updateAllDetailsMap
+                        fragment.activity.updateMap["details"] = updateAllDetailsMap
                     }
                 }
             }
@@ -158,15 +154,8 @@ class DetailsListAdapter(
     }
 
     private fun convertTimestampToDate(date: Date/*String?*/): String {
-        val res: String
-        val format = SimpleDateFormat("dd/MM/yyyy", Locale("pl", "PL"))//new SimpleDateFormat("MM/dd/yyyy HH:mm");
-        if (date != null) {
-            //date = format.format(Date(java.lang.Long.valueOf(timestamp)))
-            res = format.format(date)
-        } else {
-            res = ""
-        }
-        return res
+        //val format = SimpleDateFormat("dd/MM/yyyy", Locale("pl", "PL"))//new SimpleDateFormat("MM/dd/yyyy HH:mm");
+        return SimpleDateFormat("dd/MM/yyyy", Locale("pl", "PL")).format(date)
     }
 
 }
