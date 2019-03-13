@@ -89,27 +89,22 @@ class MainListFragment : ListFragment() {
                 val dpAsPixels = (sizeInDp * scale + 0.5f).toInt()
                 listContainer.setPadding(dpAsPixels, dpAsPixels, dpAsPixels, 0)
 
+                /*
                 val listView = listContainer.findViewById<View>(android.R.id.list) as ListView?
                 listView?.onItemLongClickListener =
                     AdapterView.OnItemLongClickListener { parent, view, position, id ->
                         val builder = AlertDialog.Builder(activity)
                         builder.setTitle(R.string.remove).setMessage(R.string.remove_node)
                             .setPositiveButton(R.string.delete) { dialog, which ->
-                                //tree.getChild(position).setDeleteXmlEntry(true);
                                 /*
-                                val childName = adapterItems[position]["title"]
-                                if (childName != null && !childName.isEmpty()) {
-                                    val child = tree!!.getChild(childName)
-                                    child!!.setDeleteXmlEntry(true)
-                                    //child.children.clear()
                                     adapterItems.removeAt(position)
                                     (listAdapter as MainListAdapter).notifyDataSetChanged()
-                                }
                                 */
                             }.setNegativeButton(R.string.cancel) { dialog, which -> dialog.dismiss() }
                         builder.create().show()
                         true
                     }
+               */
             }
         }
         return layoutView

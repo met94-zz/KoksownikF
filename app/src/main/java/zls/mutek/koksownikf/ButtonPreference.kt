@@ -36,8 +36,6 @@ import java.io.File
 class ButtonPreference : Preference {
 
     private var mRefreshThemeButton: Button? = null
-    private var mBackupButton: Button? = null
-    private var mImportBackupButton: Button? = null
 
     constructor(context: Context) : super(context) {}
 
@@ -60,43 +58,10 @@ class ButtonPreference : Preference {
         super.onBindView(view)
 
         mRefreshThemeButton = view.findViewById<View>(R.id.button_refresh_theme) as Button?
-        if (mRefreshThemeButton != null) {
-            if (!mRefreshThemeButton!!.hasOnClickListeners()) {
-                mRefreshThemeButton!!.setOnClickListener {
-                    Utils.restartApplication(context)
-                }
+        if (mRefreshThemeButton?.hasOnClickListeners() == false) {
+            mRefreshThemeButton?.setOnClickListener {
+                Utils.restartApplication(context)
             }
         }
-
-        mBackupButton = view.findViewById<View>(R.id.button_backup) as Button?
-        if (mBackupButton != null) {
-            if (!mBackupButton!!.hasOnClickListeners()) {
-                mBackupButton!!.setOnClickListener {
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                    if (context is Activity) {
-                        (context as Activity).startActivityForResult(intent, PICK_DIR_CREATE_BACKUP_REQUEST_CODE)
-                    }
-                }
-            }
-        }
-
-        mImportBackupButton = view.findViewById<View>(R.id.button_import_backup) as Button?
-        if (mImportBackupButton != null) {
-            if (!mImportBackupButton!!.hasOnClickListeners()) {
-                mImportBackupButton!!.setOnClickListener {
-
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                    if (context is Activity) {
-                        (context as Activity).startActivityForResult(intent, PICK_DIR_IMPORT_BACKUP_REQUEST_CODE)
-                    }
-                }
-            }
-        }
-    }
-
-    companion object {
-
-        internal val PICK_DIR_CREATE_BACKUP_REQUEST_CODE = 42
-        internal val PICK_DIR_IMPORT_BACKUP_REQUEST_CODE = 43
     }
 }

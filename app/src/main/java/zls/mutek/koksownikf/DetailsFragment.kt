@@ -59,7 +59,7 @@ import kotlin.collections.HashMap
  * Created by abara on 7/20/2017.
  */
 
-class DetailsFragment : ListFragment(), View.OnLongClickListener {
+class DetailsFragment : ListFragment() {//, View.OnLongClickListener {
     lateinit var path: String
     lateinit var activity: MainActivity
     var adapterItems = ArrayList<HashMap<String, Any>>()
@@ -112,17 +112,19 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         return true
     }
 
+    /*
     override fun onLongClick(view: View): Boolean {
         val position = view.tag as Int
         return onDeleteItem(position)
     }
+    */
 
     @SuppressLint("ResourceType")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val v = super.onCreateView(inflater, container, savedInstanceState)
         if (v != null) {
             val listContainer =
-                v.findViewById<View>(0x00ff0003) as FrameLayout//ListFragment.INTERNAL_LIST_CONTAINER_ID);
+                v.findViewById<View>(0x00ff0003) as FrameLayout?//ListFragment.INTERNAL_LIST_CONTAINER_ID);
             if (listContainer != null) {
                 val scale = resources.displayMetrics.density
                 //int dpAsPixels = (int) (sizeInDp*scale + 0.5f);
@@ -133,13 +135,15 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                     0
                 )
 
-
-                val listView = listContainer.findViewById<View>(android.R.id.list) as ListView
+                /*
+                val listView = listContainer.findViewById<View>(android.R.id.list) as ListView?
                 if (listView != null) {
                     listView.onItemLongClickListener =
                             AdapterView.OnItemLongClickListener { parent, view, position, id -> onDeleteItem(position) }
                 }
+                */
 
+                /*
                 val moreButton = Button(context)
                 val _width: Int
                 val _height: Int
@@ -157,73 +161,9 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                 lp.gravity = Gravity.BOTTOM or Gravity.RIGHT
                 moreButton.layoutParams = lp
                 moreButton.setOnClickListener{
-                        /*
-                        limitLoad += 2 and 0xFFFF
-                        val filename = id!! + ".xml"
-                        val file = context!!.getFileStreamPath(filename)
-                        if (file.exists()) {
-                            try {
-                                val `in` = context!!.openFileInput(filename)
-                                val oldSize = tree!!.getChildren()!!.size
-                                //tree = XMLUtils(activity as MainActivity)
-                                //    .parseXmlToTree(tree, `in`, limitLoad, true)
-                                if (tree!!.hasChildren()) {
-                                    val children = tree!!.getChildren()
-                                    //sort by time
-                                    Collections.sort(children, Comparator { o1, o2 ->
-                                        try {
-                                            return@Comparator (java.lang.Long.parseLong(o2.nodeName!!.substring(1)) - java.lang.Long.parseLong(
-                                                o1.nodeName?.substring(
-                                                    1
-                                                )!!
-                                            )).toInt()
-                                        } catch (e: Exception) {
-                                            return@Comparator 1
-                                        }
-                                    })
-                                    val toLoad = children!!.size - oldSize
-                                    var map: HashMap<String, String>
-                                    //for (int i=children.size()-1; i>(children.size()-1-toLoad); i--) {
-                                    for (i in 0 until toLoad) {
-                                        val child = children!![oldSize + i]
-                                        if (child.hasChildren() && !child.allChildrenDeleteValidXmlEntry) {
-                                            val timestamp = child.nodeName!!.substring(1) //Skip first letter 'T'
-                                            map = HashMap()
-                                            map["separator"] = "true"
-                                            map["timestamp"] = timestamp
-                                            adapterItems.add(map)
-                                            for (childChild in child.getChildren()!!) {
-                                                if (childChild.deleteValidXmlEntry)
-                                                    continue
-                                                map = HashMap()
-                                                map["title"] = childChild.nodeName!!
-                                                map["data"] = childChild.data!!
-                                                map["path"] = "root/" + child.nodeName + "/" + childChild.nodeName
-                                                adapterItems.add(map)
-                                            }
-                                        }
-                                        (listAdapter as DetailsListAdapter).notifyDataSetChanged()
-                                    }
-                                }
-
-                            } catch (e: FileNotFoundException) {
-                                Utils.showAlertDialog(activity as Context, R.string.error_occurred, R.string.file_no_exists)
-                                Log.w(TAG, getString(R.string.file_no_exists))
-                                Log.w(TAG, e.toString())
-                            } catch (e: XmlPullParserException) {
-                                Utils.showAlertDialog(activity as Context, R.string.error_occurred, R.string.file_corrupted)
-                                Log.w(TAG, getString(R.string.file_corrupted))
-                                Log.w(TAG, e.toString())
-                            } catch (e: IOException) {
-                                Utils.showAlertDialog(activity as Context, R.string.error_occurred, R.string.file_unknown_error)
-                                Log.w(TAG, getString(R.string.file_unknown_error))
-                                Log.w(TAG, e.toString())
-                            }
-
-                        }
-                        */
                     }
                 listContainer.addView(moreButton)
+                */
             }
         }
         return v

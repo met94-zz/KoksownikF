@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
      *
      */
 
-    private//MainActivity.this.getTheme().applyStyle(R.style.AppTheme, true);
+    private
     val onSharedPreferenceChange: SharedPreferences.OnSharedPreferenceChangeListener
         get() = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
             if (key == SettingsActivity.KEY_THEME) {
@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
 
     private object Permissions {
-        public val READ_PHONE_STATE = "android.permission.READ_PHONE_STATE"
+        val READ_PHONE_STATE = "android.permission.READ_PHONE_STATE"
     }
 
     internal enum class Themes {
@@ -100,10 +100,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         Light
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        //FirebaseApp.initializeApp(this )
-        //FirebaseFirestore.getInstance().disableNetwork()
+    class Container(v: Any?) {
+        var m: Any? = v
+        fun get(): Any? { return m }
+        fun set(v: Any?) { m=v }
+    }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
         //initializing settings
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         SettingsActivity.initializeResources(this)
@@ -300,17 +303,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     fun checkDetailsUpdateFinished(
         newDetailsMap: HashMap<String, Any>,
-        filteredNewDetailsMap: Map<String, Any>?
+        cFilteredNewDetailsMap: Container//Map<String, Any>?
     ): Boolean {
-        var _filteredNewDetailsMap = filteredNewDetailsMap
-        if (_filteredNewDetailsMap == null) {
-            _filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
+        var filteredNewDetailsMap = cFilteredNewDetailsMap.get() as Map<String, Any>?
+        if (filteredNewDetailsMap == null) {
+            filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                 updatedDetailsMap[mapEntry.key]?.let {
                     it.size != (mapEntry.value as? Map<*, *>)?.size ?: -1
                 } ?: true
             }
+            cFilteredNewDetailsMap.set(filteredNewDetailsMap)
         }
-        if (_filteredNewDetailsMap.isEmpty()) {
+        if (filteredNewDetailsMap.isEmpty()) {
             updatedDetailsMap.clear()
             (updateMap["details"] as HashMap<String, HashMap<Date, Any>>).iterator().run {
                 while (hasNext()) {
@@ -336,7 +340,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     fun performSave() {
         if (updateMap.size == 0) return
         val db = FirebaseFirestore.getInstance()
-        //while(updateMap.size != 0) {
         if (updateMap.size != 0) {
             if (updateMap.containsKey("dirs")) {
                 //updateInProgress = true //no need as it should happen immeadietly
@@ -353,15 +356,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
             if (updateMap.containsKey("details")) {
                 val newDetailsMap = updateMap["details"] as HashMap<String, Any>
-
+                /*
                 val filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                     updatedDetailsMap[mapEntry.key]?.let {
                         it.size != (mapEntry.value as? Map<*, *>)?.size ?: -1
                     } ?: true
-                }
+                } */
 
-                if (!checkDetailsUpdateFinished(newDetailsMap, filteredNewDetailsMap))
+                val cFilteredNewDetailsMap = Container(null)
+
+                if (!checkDetailsUpdateFinished(newDetailsMap, cFilteredNewDetailsMap) || cFilteredNewDetailsMap.get() == null)
                     return
+
+                var filteredNewDetailsMap: HashMap<String, Any> = cFilteredNewDetailsMap.get() as HashMap<String, Any>
 
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
 
@@ -377,15 +384,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                     !it.contains(mapEntry.key)
                                 } ?: true
                             }
-                            if (filteredUpdateMap.size != 0) {
+                            if (filteredUpdateMap.isNotEmpty()) {
                                 for ((dateCreated, updateDataMap) in filteredUpdateMap) {
-                                    //if (dateCreated != Date(0)) {
                                         val query = notesCollectionRef.whereEqualTo("created", dateCreated)
                                         query.get().addOnSuccessListener {
-                                            //val notes: ArrayList<HashMap<String, *>>? =
-                                            //    filteredUpdateMap[Date(0)] as? ArrayList<HashMap<String, *>>
                                             val notes = notesMap[key] as? ArrayList<HashMap<String, *>>
-                                            var newVal = HashMap<String, Any>()
+                                            val newVal = HashMap<String, Any>()
                                             newVal["created"] = dateCreated
                                             newVal["data"] = updateDataMap
                                             if (it.size() == 0) {
@@ -402,7 +406,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                                                 if (list.isEmpty())
                                                                     list.size
                                                                 (list.get(0)
-                                                                    ?.get("data") as? HashMap<String, String>)?.let { data ->
+                                                                    .get("data") as? HashMap<String, String>)?.let { data ->
                                                                 data.forEach { d ->
                                                                     if (!it.containsKey(d.key)) {
                                                                         it.put(d.key, d.value)
@@ -413,21 +417,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                                     }
                                                     it.reference.update(newVal).addOnSuccessListener {
                                                         Log.d(TAG, "addOnSuccessListener update reference")
-                                                        //sprawdzic tu czy wykonuje sie dopiero po wejsciu w online
                                                     }.addOnCompleteListener {
                                                         Log.d(TAG, "addOnCompleteListener update reference")
                                                     }
-
-                                                    //it.reference.hashCode()
                                                 }
                                             }
                                             updatedDetailsMap[key] = updatedDetailsMap[key] ?: ArrayList()
                                             updatedDetailsMap[key]?.add(dateCreated)
-                                            checkDetailsUpdateFinished(newDetailsMap, null)
+                                            checkDetailsUpdateFinished(newDetailsMap, Container(null))
                                         }.addOnFailureListener {
                                             Log.d(TAG, "Error getting documents: ", it)
                                         }
-                                    //}
                                 }
                             }
                         }

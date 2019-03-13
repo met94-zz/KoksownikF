@@ -46,12 +46,10 @@ class SettingsFragment : PreferenceFragment() {
                 if (isAdded) {
                     val switchPreference =
                         findPreference(getString(R.string.generalPreferences_themeKey)) as SwitchPreference
-                    if (switchPreference != null) {
-                        if (sharedPreferences.getBoolean(key, true)) {
-                            switchPreference.setTitle(R.string.generalPreferences_themeDark)
-                        } else {
-                            switchPreference.setTitle(R.string.generalPreferences_themeLight)
-                        }
+                    if (sharedPreferences.getBoolean(key, true)) {
+                        switchPreference.setTitle(R.string.generalPreferences_themeDark)
+                    } else {
+                        switchPreference.setTitle(R.string.generalPreferences_themeLight)
                     }
                 }
             }

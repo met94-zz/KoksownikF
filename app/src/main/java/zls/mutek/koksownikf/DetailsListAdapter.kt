@@ -79,7 +79,7 @@ class DetailsListAdapter(
             if (textView != null) {
                 textView.text = (map["title"] as String).replace('_', ' ')
                 textView.tag = position
-                textView.setOnLongClickListener(fragment)
+                //textView.setOnLongClickListener(fragment)
             }
 
             val editText = v.findViewById<View>(R.id.details_list_EditText1) as EditText
