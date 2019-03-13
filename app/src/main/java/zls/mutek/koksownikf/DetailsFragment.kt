@@ -66,7 +66,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         private set(value) {
             field = value
         }
-    var notes = ArrayList<HashMap<String, *>>()
+    lateinit var notes: ArrayList<HashMap<String, *>>// = ArrayList<HashMap<String, *>>()
     /*
         private set(value) {
             field = value
@@ -81,7 +81,11 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
         setHasOptionsMenu(true)
 
         path = arguments?.getString("path") ?: ""
-        notes = arguments?.getSerializable("notes") as ArrayList<HashMap<String, *>>
+        if(arguments?.containsKey("notes") == true)
+            notes = arguments?.getSerializable("notes") as ArrayList<HashMap<String, *>>
+        else {
+            notes = ArrayList<HashMap<String, *>>()
+        }
         activity.path_textView?.text = path.substring(path.indexOf("/") + 1)
         downloadData()
     }
@@ -284,7 +288,7 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
 
                         val updateAllDetailsMap = activity.updateMap["details"] as? HashMap<String, Any> ?: HashMap()
 
-                        val updateMap = updateAllDetailsMap[path!!] as? HashMap<Date, Any> ?: HashMap()
+                        val updateMap = updateAllDetailsMap[path] as? HashMap<Date, Any> ?: HashMap()
 
                         if(!updateMap.containsKey(date))
                             updateMap[date] = HashMap<String, String>()
@@ -292,7 +296,26 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
                         val updateDataMap = updateMap[date] as HashMap<String, String>
                         updateDataMap[newNode] = data
                         updateMap[date] = updateDataMap
-                        updateMap[Date(0)] = notes
+
+                        //updateMap[Date(0)] = notes
+                        var note = notes.filter {
+                            it["created"] == date
+                        }
+                        var noteMap: HashMap<String, Any>
+                        if(note.isEmpty()) {
+                            noteMap = HashMap<String, Any>()
+                            noteMap["created"] = date
+                            noteMap["data"] = HashMap<String, Any>()
+                            notes.add(noteMap)
+                        } else noteMap = note.get(0) as HashMap<String, Any>
+
+                        (noteMap["data"] as HashMap<String, Any>)[newNode] = data
+
+                        val savedNotes = ArrayList<HashMap<String, *>>()
+                        for(note in notes) {
+                            savedNotes.add(note)
+                        }
+                        updateMap[Date(0)] = savedNotes
 
                         updateAllDetailsMap[path] = updateMap
 
@@ -319,6 +342,8 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
     }
 
     private fun downloadData() {
+        //if(notes.isEmpty() && activity.notesMap.containsKey(path))
+        //    notes = activity.notesMap[path] as ArrayList<HashMap<String, *>>
         if(notes.size != 0)
         {
             if(context != null && adapterItems.size == 0) {
@@ -372,6 +397,15 @@ class DetailsFragment : ListFragment(), View.OnLongClickListener {
     private fun initializeAdapterList() {
         var map: HashMap<String, Any>
         var mapNote: HashMap<String, String>
+
+        if(!activity.notesMap.containsKey(path)) {
+            //activity.notesMap[path] = notes
+            val savedNotes = ArrayList<HashMap<String, *>>()
+            for(note in notes) {
+                savedNotes.add(note)
+            }
+            activity.notesMap[path] = savedNotes
+        }
 
         for(note in notes) {
             map = HashMap()

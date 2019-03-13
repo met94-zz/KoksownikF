@@ -59,7 +59,7 @@ class MainListFragment : ListFragment() {
     private var layoutView: View? = null
 
 
-    internal var notes = ArrayList<HashMap<String, *>>()
+    //internal var notes = ArrayList<HashMap<String, *>>()
 
     private val TAG = "MF_TAG"
 
@@ -261,15 +261,17 @@ class MainListFragment : ListFragment() {
             }
         }
         if (index != -1 && (index + 2) < splitted.size && splitted[index + 2] == "*") {
-            fr = DetailsFragment.newInstance(path, notes)
+            fr = DetailsFragment.newInstance(path, activity.notesMap[path] as? ArrayList<HashMap<String, *>>)//notes)
         } else {
             fr = MainListFragment.newInstance(path, nextPath, dirs)
         }
 
+        /*
         fragmentManager!!.addOnBackStackChangedListener {
             if (fr is DetailsFragment)
                 this.notes = fr.notes
         }
+        */
         fragmentManager!!.beginTransaction().replace(R.id.fragment_container, fr).addToBackStack(null).commit()
     }
 

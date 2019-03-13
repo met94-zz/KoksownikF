@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     var updateInProgress = false
 
     var dirs: ArrayList<String> = arrayListOf()
+    var notesMap: HashMap<String, Any> = HashMap()
     var playButtonPressed = false
     var stopButtonPressed = true
     var timeCounted: Long = 0
@@ -171,8 +172,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         downloadDirsData(fr)
     }
 
-    private fun downloadDirsData(fr: MainListFragment)
-    {
+    private fun downloadDirsData(fr: MainListFragment) {
         // Access a Cloud Firestore instance from your Activity
         val db = FirebaseFirestore.getInstance()
         val docRef = db.collection("users").document("CycxoH93888zgq31fry6")
@@ -298,9 +298,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    fun checkDetailsUpdateFinished(newDetailsMap: HashMap<String, Any>, filteredNewDetailsMap: Map<String, Any>?): Boolean {
+    fun checkDetailsUpdateFinished(
+        newDetailsMap: HashMap<String, Any>,
+        filteredNewDetailsMap: Map<String, Any>?
+    ): Boolean {
         var _filteredNewDetailsMap = filteredNewDetailsMap
-        if(_filteredNewDetailsMap == null) {
+        if (_filteredNewDetailsMap == null) {
             _filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                 updatedDetailsMap[mapEntry.key]?.let {
                     it.size != (mapEntry.value as? Map<*, *>)?.size?.let { it - 1 } ?: -1
@@ -315,8 +318,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     remove()
                 }
             }
-            if(!updateInProgress)
-                Toast.makeText(this, "No changes detected", Toast.LENGTH_LONG)
+            if (!updateInProgress)
+                Toast.makeText(this, "No changes detected", Toast.LENGTH_LONG).show()
             updateInProgress = false
             return false
         }
@@ -357,7 +360,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     } ?: true
                 }
 
-                if(!checkDetailsUpdateFinished(newDetailsMap, filteredNewDetailsMap))
+                if (!checkDetailsUpdateFinished(newDetailsMap, filteredNewDetailsMap))
                     return
 
                 val collectionRef = db.collection("users").document("CycxoH93888zgq31fry6").collection("dirs")
@@ -391,22 +394,26 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                                 it.forEach {
 
                                                     (newVal["data"] as? HashMap<String, String>)?.let {
-                                                        (notes?.filter { note ->
+                                                        notes?.filter { note ->
                                                             note["created"] == dateCreated
                                                         }
-                                                            ?.get(0)
-                                                            ?.get("data") as? HashMap<String, String>)?.let { data ->
-                                                            data.forEach { d ->
-                                                                if (!it.containsKey(d.key)) {
-                                                                    it.put(d.key, d.value)
+                                                            ?.let { list ->
+                                                                if (list.isEmpty())
+                                                                    list.size
+                                                                (list.get(0)
+                                                                    ?.get("data") as? HashMap<String, String>)?.let { data ->
+                                                                data.forEach { d ->
+                                                                    if (!it.containsKey(d.key)) {
+                                                                        it.put(d.key, d.value)
+                                                                    }
                                                                 }
                                                             }
-                                                        }
+                                                            }
                                                     }
                                                     it.reference.update(newVal).addOnSuccessListener {
                                                         Log.d(TAG, "addOnSuccessListener update reference")
                                                         //sprawdzic tu czy wykonuje sie dopiero po wejsciu w online
-                                                    }.addOnCompleteListener{
+                                                    }.addOnCompleteListener {
                                                         Log.d(TAG, "addOnCompleteListener update reference")
                                                     }
 
