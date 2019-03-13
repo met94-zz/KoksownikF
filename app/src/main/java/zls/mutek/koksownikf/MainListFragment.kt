@@ -58,9 +58,6 @@ class MainListFragment : ListFragment() {
     internal var dirs = ArrayList<String>()
     private var layoutView: View? = null
 
-
-    //internal var notes = ArrayList<HashMap<String, *>>()
-
     private val TAG = "MF_TAG"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -261,7 +258,7 @@ class MainListFragment : ListFragment() {
             }
         }
         if (index != -1 && (index + 2) < splitted.size && splitted[index + 2] == "*") {
-            fr = DetailsFragment.newInstance(path, activity.notesMap[path] as? ArrayList<HashMap<String, *>>)//notes)
+            fr = DetailsFragment.newInstance(path)
         } else {
             fr = MainListFragment.newInstance(path, nextPath, dirs)
         }

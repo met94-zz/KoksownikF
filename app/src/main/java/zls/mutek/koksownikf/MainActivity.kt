@@ -306,7 +306,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         if (_filteredNewDetailsMap == null) {
             _filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                 updatedDetailsMap[mapEntry.key]?.let {
-                    it.size != (mapEntry.value as? Map<*, *>)?.size?.let { it - 1 } ?: -1
+                    it.size != (mapEntry.value as? Map<*, *>)?.size ?: -1
                 } ?: true
             }
         }
@@ -356,7 +356,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
                 val filteredNewDetailsMap = newDetailsMap.filter { mapEntry ->
                     updatedDetailsMap[mapEntry.key]?.let {
-                        it.size != (mapEntry.value as? Map<*, *>)?.size?.let { it - 1 } ?: -1
+                        it.size != (mapEntry.value as? Map<*, *>)?.size ?: -1
                     } ?: true
                 }
 
@@ -379,11 +379,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                             }
                             if (filteredUpdateMap.size != 0) {
                                 for ((dateCreated, updateDataMap) in filteredUpdateMap) {
-                                    if (dateCreated != Date(0)) {
+                                    //if (dateCreated != Date(0)) {
                                         val query = notesCollectionRef.whereEqualTo("created", dateCreated)
                                         query.get().addOnSuccessListener {
-                                            val notes: ArrayList<HashMap<String, *>>? =
-                                                filteredUpdateMap[Date(0)] as? ArrayList<HashMap<String, *>>
+                                            //val notes: ArrayList<HashMap<String, *>>? =
+                                            //    filteredUpdateMap[Date(0)] as? ArrayList<HashMap<String, *>>
+                                            val notes = notesMap[key] as? ArrayList<HashMap<String, *>>
                                             var newVal = HashMap<String, Any>()
                                             newVal["created"] = dateCreated
                                             newVal["data"] = updateDataMap
@@ -426,7 +427,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                                         }.addOnFailureListener {
                                             Log.d(TAG, "Error getting documents: ", it)
                                         }
-                                    }
+                                    //}
                                 }
                             }
                         }

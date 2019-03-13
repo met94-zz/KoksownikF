@@ -140,7 +140,7 @@ class DetailsListAdapter(
                         var updateDataMap = updateMap[created] as HashMap<String, String>
                         updateDataMap[map["title"] as String] = newData
                         updateMap[created] = updateDataMap
-                        updateMap[Date(0)] = fragment.notes
+                        //updateMap[Date(0)] = fragment.notes
 
                         updateAllDetailsMap[path] = updateMap
 

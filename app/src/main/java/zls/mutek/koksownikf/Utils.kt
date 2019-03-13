@@ -38,7 +38,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.Arrays
+import java.util.*
 
 /**
  * Created by abara on 8/4/2017.
@@ -56,10 +56,7 @@ object Utils {
     /* Checks if external storage is available for read and write */
     val isExternalStorageWritable: Boolean
         get() {
-            val state = Environment.getExternalStorageState()
-            return if (Environment.MEDIA_MOUNTED == state) {
-                true
-            } else false
+            return Environment.MEDIA_MOUNTED == Environment.getExternalStorageState()
         }
     fun isNameStartChar(c: Char): Boolean {
         return (c == ':' || c in 'A'..'Z' || c == '_' || c in 'a'..'z' || c.toInt() in 0xC0..0xD6
@@ -83,7 +80,7 @@ object Utils {
      * @return true if name is a valid Name
      */
     fun isValidXMLName(name: String): Boolean {
-        if (name.length == 0)
+        if (name.isEmpty())
             return false
         var ch = name[0]
         if (!isNameStartChar(ch) || ch == ':' || ch == ';')
@@ -110,7 +107,7 @@ object Utils {
         return sb.toString()
     }
 
-    fun validXMLName(fragment: DetailsFragment, name: String): String {
+    fun validXMLName(fragment: DetailsFragment, name: String, date: Date): String {
         var result = name
         val ch = result[0]
         Character.UPPERCASE_LETTER
@@ -120,7 +117,7 @@ object Utils {
         if(!isValidXMLName(result)) { //any invalid characters?
             result = fixXMLName(result); //fix invalid characters
         }
-        while(fragment.adapterItems.any { it["title"] == result }) { //check for duplicates
+        while(fragment.notes.any { it["created"] == date && (it["data"] as?  HashMap<String, Any>)?.containsKey(result) == true }) { //check for duplicates
             if(result[result.length-1] == '9' || !Character.isDigit(result[result.length-1])) {
                 result += '1'
             } else {
@@ -174,7 +171,7 @@ object Utils {
 
         val permsToAsk = Arrays.copyOf(perms, i)
 
-        if (permsToAsk.size == 0) {
+        if (permsToAsk.isEmpty()) {
             return true
         }
 
